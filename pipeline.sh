@@ -1,0 +1,3 @@
+decode_result_path='/datadisk/decoder_result/aishell1/trans_8_4_4gpus_512units_specaug_sp_final_exp3'
+model_path='/datadisk/model/aishell1/transformer_8_4_4gpus_512units_specaug_sp_final_exp3'
+python get_eval_cer_epoch.py --decode_results_path $decode_result_path --model_path $model_path

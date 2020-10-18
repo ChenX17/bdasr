@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+*.swp
+*/*.swp
+*/*/*.swp
+*.pyc
+*/*.pyc
+*/*/*.pyc
+.vscode/
+test.py
