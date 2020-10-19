@@ -248,11 +248,12 @@ class DataLoader(object):
     total_shuf_scp = total_scp
 
     #re-write the shuffled scp to src_shuf_path
-    scp_shuf_path = self.scp_files[0].split('.')[0]+'_shuf_'+str(random.randint(0,99))+'.scp'
+    scp_shuf_path =  self.scp_files[0].split('.')[0]+'_shuf_'+str(random.randint(0,99))+'.scp'
     logging.info("shuffled scp is stored in "+ scp_shuf_path)
     f = open(scp_shuf_path,'w')
     f.writelines(total_shuf_scp)
     f.close()
+
     # Caches to store data.
     caches = {}
     for bucket_index in range(len(self.frame_bucket_limit)):
@@ -336,6 +337,7 @@ class DataLoader(object):
         #yield (feat_batch, target_batch, len(caches[bucket_index][0]))
         self._batch_queue.put((feat_batch, target_batch, len(caches[bucket_index][0])))
         caches[bucket_index] = [[], [], 0]
+    os.remove(scp_shuf_path)
     self._put_done = True
     del(caches)
 
