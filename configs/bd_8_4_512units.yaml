@@ -1,9 +1,9 @@
 ---
 model: 'BD_TransformerModel'
-dst_vocab: '/datadisk/datasets/aishell2/train/train_units_bd.txt'
+dst_vocab: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/bd_vocab'
 apply_sentence_cmvn: False # Use global cmvn
-global_cmvn_file: '/datadisk/datasets/aishell2/train/global_cmvn.txt'
-dst_vocab_size: 5210
+global_cmvn_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/global_cmvn.txt'
+dst_vocab_size: 4336
 #### hidden_units: 512
 hidden_units: 512
 scale_embedding: True
@@ -21,7 +21,7 @@ mask_prob: 0.0
 mask_rate: 0.0
 ff_activation: 'glu'
 #model_dir: '/data00/home/labspeech_intern/chenxi/project/rebuild_transformerasr/bd_transformer_aishell_model'
-model_dir: '/datadisk/model/aishell2/bd/bd_transformer_8_4_4gpus_512units_exp1'
+model_dir: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4gpus_512units'
 # Discarded
 #bucket_min: 50
 # Discarded
@@ -32,10 +32,10 @@ model_dir: '/datadisk/model/aishell2/bd/bd_transformer_8_4_4gpus_512units_exp1'
 train:
     num_gpus: 4
     #tokens_per_batch: 50000
-    feat_file_pattern: '/datadisk/datasets/aishell2/train/feature/feats.*.scp'
-    label_file: '/datadisk/datasets/aishell2/train/text'
-    sudo_l2r_target: '/datadisk/datasets/aishell2/train/text'
-    sudo_r2l_target: '/datadisk/datasets/aishell2/train/text'
+    feat_file_pattern: '/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank/raw_fbank_train.*.scp'
+    label_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/text'
+    sudo_l2r_target: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/text'
+    sudo_r2l_target: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/text'
     frame_bucket_limit: '[200, 300, 500, 800, 1200, 1400, 1800, 3000]'
     batch_bucket_limit_per_gpu: '[220, 200, 180, 140, 100, 100, 60, 20]'
     batch_factor: 0.3
@@ -62,8 +62,8 @@ train:
     input_dim: 240
     var_filter: ''
 dev:
-    feat_file_pattern: '/datadisk/datasets/aishell2/dev/ark/raw_fbank_dev.[1-4].ark'
-    output_file: '/datadisk/decoder_result/aishell2/bd/bd_8_4_4gpus_512units_exp1/'
+    feat_file_pattern: '/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank/raw_fbank_dev.[1-4].ark'
+    output_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4gpus_512units/dev_decoding_results/'
 
 test:
     batch_size: 40
@@ -73,7 +73,7 @@ test:
     num_gpus: 4
     checkpoint: 'model_step_200000'
     set1:
-        feat_file_pattern: '/datadisk/datasets/aishell2/test/ark/raw_fbank_test.[1-4].ark'
+        feat_file_pattern: '/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank/raw_fbank_test.[1-4].ark'
         label_file: ''
         output_path: '/datadisk/decoder_result/aishell2/bd_decoder_8_4_4gpus_512units_exp1_200k.txt'
         cmd:

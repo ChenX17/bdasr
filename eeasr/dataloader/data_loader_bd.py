@@ -388,6 +388,7 @@ class DataLoader(object):
         #yield (feat_batch, target_batch, len(caches[bucket_index][0]))
         self._batch_queue.put((feat_batch, target_batch, masked_target, len(caches[bucket_index][0])))
         caches[bucket_index] = [[], [], 0]
+    os.remove(scp_shuf_path)
     self._put_done = True
     del(caches)
 
