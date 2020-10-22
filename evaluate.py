@@ -2,24 +2,22 @@ from __future__ import print_function
 
 import codecs
 import commands
-import logging
 import os
 import time
+import logging
 import yaml
 import tensorflow as tf
 import numpy as np
-
 from argparse import ArgumentParser
 from tempfile import mkstemp
 from tensorflow.python import debug as tf_debug
 
 from eeasr.core import utils
-import eeasr.dataloader.test_data_loader
 from eeasr.models.base_model import BaseModel
 from eeasr.models.transformer_model import TransformerModel
-from tensorflow.python import debug as tf_debug
-
-is_debug = False
+import eeasr.dataloader.test_data_loader
+from eeasr.models.bd_transformer_model import BD_TransformerModel
+is_debug = False #False
 class Evaluator(object):
   """
   Evaluate the model.
@@ -30,6 +28,7 @@ class Evaluator(object):
   def init_from_config(self, config):
     self.model = eval(config.model)(config, config.test.num_gpus)
     self.model.build_test_model()
+
     sess_config = tf.ConfigProto()
     sess_config.gpu_options.allow_growth = True
     sess_config.allow_soft_placement = True
@@ -44,9 +43,8 @@ class Evaluator(object):
           config.model_dir,config.test.checkpoint))
     else:
       logging.info('Reload model in %s.' % config.model_dir)
-      self.model.saver.restore(
-          self.sess, tf.train.latest_checkpoint(config.model_dir))
-    self.sess.graph.finalize()
+      self.model.saver.restore(self.sess,
+          tf.train.latest_checkpoint(config.model_dir))
     self.data_reader = eeasr.dataloader.test_data_loader.DataReader(config)
     self.config = config
 
@@ -55,13 +53,36 @@ class Evaluator(object):
     self.config = config
     self.sess = sess
     self.model = model
-    self.data_reader = eeasr.dataloader.test_data_loader.DataReader(config)
-    
+    self.data_reader = eeasr.dataloader.test_data_loader.DataReader(self.config)
+
   def beam_search(self, X):
-    return self.sess.run(self.model.prediction, feed_dict=eeasr.dataloader.test_data_loader.expand_feed_dict({self.model.src_pls: X}))
+    return self.sess.run([self.model.prediction, self.model.scores, self.model.alive_probs, self.model.finished_flags],
+               feed_dict=eeasr.dataloader.test_data_loader.expand_feed_dict(
+               {self.model.src_pls: X}))
 
   def loss(self, X, Y):
-    return self.sess.run(self.model.loss_sum, feed_dict=eeasr.dataloader.test_data_loader.expand_feed_dict({self.model.src_pls: X, self.model.dst_pls: Y}))
+    return self.sess.run(self.model.loss_sum,
+               feed_dict=eeasr.dataloader.test_data_loader.expand_feed_dict(
+               {self.model.src_pls: X, self.model.dst_pls: Y}))
+
+  def post_process(self, Y):
+    new_Y = []
+      for line in Y:
+        # 4 represents <r2l>, reverse the predicted target
+        if line[0] == 4:
+          length = np.where(line==3)
+          if len(length[0]) == 0:
+            new_line = line.tolist()[1:][::-1]
+            logging.info('nothing decoded--<r2l>')
+          else:
+            line = line.tolist()
+            new_line = line[1:length[0][0]][::-1] + line[length[0][0]:]
+          new_Y.append(new_line)
+        else:
+          new_line = line.tolist()
+          new_Y.append(new_line[1:])
+    return np.array(new_Y)
+
 
   def translate(self, src_path, output_path):
     logging.info('Translate %s.' % src_path)
@@ -72,19 +93,29 @@ class Evaluator(object):
     fd = codecs.open(tmp, 'w', 'utf8')
     count = 0
     token_count = 0
-    batch_size = self.config.test.batch_size * self.config.test.num_gpus
     start = time.time()
-    for X,uttids in self.data_reader.get_test_batches_with_tokens_per_batch(src_path, 8000*self.config.test.num_gpus):
-      Y = self.beam_search(X)
+    batch_size = self.config.test.batch_size * self.config.test.num_gpus
+    for X,uttids in self.data_reader.get_test_batches(src_path, batch_size):
+
+      Y, scores, alive_probs, finished_flags = self.beam_search(X)
+
+      # if bd, post process
+      if 'BD' in config.model:
+        Y = self.post_process(Y)
+
       sents = self.data_reader.indices_to_words(Y)
       assert len(X) == len(sents)
+      
       for sent, uttid in zip(sents, uttids):
         print(uttid + '\t' + sent, file=fd)
       count += len(X)
-      token_count += np.sum(np.not_equal(Y, 3))  # 3: </s>
+      token_count += np.sum(np.not_equal(Y, 3))
+      if token_count == 0:
+        print(Y.shape)
+        continue
       time_span = time.time() - start
       logging.info('{0} sentences ({1} tokens) processed in {2:.2f} minutes (speed: {3:.4f} sec/token).'.
-              format(count, token_count, time_span / 60, time_span / token_count))
+          format(count, token_count, time_span / 60, time_span / token_count))
     fd.close()
     # Remove BPE flag, if have.
     os.system("sed -r 's/(@@ )|(@@ ?$)//g' %s > %s" % (tmp, output_path))
@@ -96,7 +127,7 @@ class Evaluator(object):
     token_count = 0
     loss_sum = 0
     for batch in self.data_reader.get_test_batches_with_target(
-            src_path, dst_path, batch_size):
+        src_path, dst_path, batch_size):
       X, Y = batch
       loss_sum += self.loss(X, Y)
       token_count += np.sum(np.greater(Y, 0))
@@ -126,10 +157,11 @@ if __name__ == '__main__':
   from ctypes import cdll
 
   cdll.LoadLibrary('/usr/local/cuda/lib64/libcudnn.so')
-  #cdll.LoadLibrary('/usr/local/cudnn/lib64/libcudnn.so')
   import os
 
   os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+  #os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+  # os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
   parser = ArgumentParser()
   parser.add_argument('-c', '--config', dest='config')
@@ -138,12 +170,13 @@ if __name__ == '__main__':
   if not args.config:
     args.config = './config_template_pinyin.yaml'
   config = eeasr.dataloader.test_data_loader.AttrDict(
-               yaml.load(open(args.config)))
+          yaml.load(open(args.config)))
   # Logger
   logging.basicConfig(level=logging.INFO)
   evaluator = Evaluator()
   evaluator.init_from_config(config)
   for attr in config.test:
     if attr.startswith('set'):
-      evaluator.evaluate(config.test.batch_size, **config.test[attr])
+      evaluator.evaluate(config.test.batch_size * config.test.num_gpus,
+                         **config.test[attr])
   logging.info("Done")

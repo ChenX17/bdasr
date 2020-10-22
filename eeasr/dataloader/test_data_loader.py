@@ -238,7 +238,7 @@ class DataReader(object):
           break
         w = idx2word[i]
         sent.append(w)
-      sents.append('*'.join(sent))
+      sents.append(''.join(sent))
     return sents
 
 
