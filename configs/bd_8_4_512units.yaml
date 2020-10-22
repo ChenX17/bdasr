@@ -71,9 +71,9 @@ test:
     lp_alpha: 0.6
     beam_size: 2
     num_gpus: 4
-    checkpoint: 'model_step_200000'
+    checkpoint: 'model_epoch_50'
     set1:
         feat_file_pattern: '/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank/raw_fbank_test.[1-4].ark'
         label_file: ''
-        output_path: '/datadisk/decoder_result/aishell2/bd_decoder_8_4_4gpus_512units_exp1_200k.txt'
+        output_path: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4gpus_512units/test_decoding_results/bd_decoder_8_4_4gpus_epoch_50.txt'
         cmd:

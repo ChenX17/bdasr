@@ -56,9 +56,13 @@ class Evaluator(object):
     self.data_reader = eeasr.dataloader.test_data_loader.DataReader(self.config)
 
   def beam_search(self, X):
-    return self.sess.run([self.model.prediction, self.model.scores, self.model.alive_probs, self.model.finished_flags],
-               feed_dict=eeasr.dataloader.test_data_loader.expand_feed_dict(
-               {self.model.src_pls: X}))
+    if 'BD' in config.model:
+      return self.sess.run([self.model.prediction, self.model.scores, self.model.alive_probs, self.model.finished_flags],
+                feed_dict=eeasr.dataloader.test_data_loader.expand_feed_dict(
+                {self.model.src_pls: X}))
+    else:
+      return self.sess.run(self.model.prediction,
+      feed_dict=eeasr.dataloader.test_data_loader.expand_feed_dict({self.model.src_pls: X}))
 
   def loss(self, X, Y):
     return self.sess.run(self.model.loss_sum,
@@ -67,20 +71,20 @@ class Evaluator(object):
 
   def post_process(self, Y):
     new_Y = []
-      for line in Y:
-        # 4 represents <r2l>, reverse the predicted target
-        if line[0] == 4:
-          length = np.where(line==3)
-          if len(length[0]) == 0:
-            new_line = line.tolist()[1:][::-1]
-            logging.info('nothing decoded--<r2l>')
-          else:
-            line = line.tolist()
-            new_line = line[1:length[0][0]][::-1] + line[length[0][0]:]
-          new_Y.append(new_line)
+    for line in Y:
+      # 4 represents <r2l>, reverse the predicted target
+      if line[0] == 4:
+        length = np.where(line==3)
+        if len(length[0]) == 0:
+          new_line = line.tolist()[1:][::-1]
+          logging.info('nothing decoded--<r2l>')
         else:
-          new_line = line.tolist()
-          new_Y.append(new_line[1:])
+          line = line.tolist()
+          new_line = line[1:length[0][0]][::-1] + line[length[0][0]:]
+        new_Y.append(new_line)
+      else:
+        new_line = line.tolist()
+        new_Y.append(new_line[1:])
     return np.array(new_Y)
 
 
@@ -97,11 +101,15 @@ class Evaluator(object):
     batch_size = self.config.test.batch_size * self.config.test.num_gpus
     for X,uttids in self.data_reader.get_test_batches(src_path, batch_size):
 
-      Y, scores, alive_probs, finished_flags = self.beam_search(X)
+      
 
       # if bd, post process
       if 'BD' in config.model:
+        # print scores for debug
+        Y, scores, alive_probs, finished_flags = self.beam_search(X)
         Y = self.post_process(Y)
+      else:
+        Y = self.beam_search(X)
 
       sents = self.data_reader.indices_to_words(Y)
       assert len(X) == len(sents)
