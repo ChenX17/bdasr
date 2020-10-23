@@ -1,3 +1,11 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+'''
+Date: 2020-10-23 00:02:20
+LastEditors: Xi Chen(chenxi50@lenovo.com)
+LastEditTime: 2020-10-23 00:16:46
+'''
 # Copyright 2017 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,9 +21,7 @@
 # limitations under the License.
 
 """Script to average values of variables in a list of checkpoint files."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+
 
 # Dependency imports
 
@@ -23,6 +29,7 @@ import numpy as np
 import six
 from six.moves import zip  # pylint: disable=redefined-builtin
 import tensorflow as tf
+import os
 
 
 def checkpoint_exists(path):
@@ -30,27 +37,17 @@ def checkpoint_exists(path):
             tf.gfile.Exists(path + ".index"))
 
 
-def avg_model(checkpoints, checkpoints_dir):
+def avg_model(checkpoints_list):
     from ctypes import cdll
 
-    # cdll.LoadLibrary('/usr/local/cuda/lib64/libcudnn.so.6')
-    import os
-
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "11"
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "3,4"
-
-    avg_model_prefix = os.path.join('/datadisk/model/aishell1/avg_model',checkpoints_dir.split('/')[-1])
-    output_path = os.path.join(avg_model_prefix,'averaged.ckpt')
+    checkpoint_dir = '/'.join(checkpoints_list[0].split('/')[:-1])
+    
+    output_path = os.path.join(checkpoint_dir,'averaged.ckpt')
 
     # Get the checkpoints list from flags and run some basic checks.
-    checkpoints = [c.strip() for c in checkpoints.split(",")]
-    checkpoints = [c for c in checkpoints if c]
+    checkpoints = [c for c in checkpoints_list]
     if not checkpoints:
         raise ValueError("No checkpoints provided for averaging.")
-    if checkpoints_dir:
-        checkpoints = [os.path.join(checkpoints_dir, c) for c in checkpoints]
     checkpoints = [c for c in checkpoints if checkpoint_exists(c)]
     if not checkpoints:
         raise ValueError(
@@ -68,31 +65,14 @@ def avg_model(checkpoints, checkpoints_dir):
     for checkpoint in checkpoints:
         reader = tf.contrib.framework.load_checkpoint(checkpoint)
         for name in var_values:
-            #import pdb;pdb.set_trace()
             if 'alpha' in name:
                 if 'Adam' not in name:
-                    #import pdb;pdb.set_trace()
                     print(name + '=' + str(reader.get_tensor(name)))             
             tensor = reader.get_tensor(name)
             var_dtypes[name] = tensor.dtype
             var_values[name] += tensor
-            if name == 'douyin_4000h/uls/atten/atten_step_counter/var':
-                var_values[name] = tensor
-                var_dtypes[name] = tensor.dtype
-                #print(tensor.dtype)
-                #print(var_values[name].dtype)
         tf.logging.info("Read from checkpoint %s", checkpoint)
-    #name2w = []
-    for name in var_values:  # Average.
-        #name2w.append(name + '\n')
-        if name != 'douyin_4000h/uls/atten/atten_step_counter/var':
-            var_values[name] /= len(checkpoints)
-        else:
-            if 'alpha' in name:
-                print(var_values[name])
-    #f = open('/datadisk/projects/transformerasr/transformer/third_party/tensor2tensor/paraname.txt','w')
-    #f.writelines(name2w)
-    #f.close
+
     tf_vars = [
         tf.get_variable(v, shape=var_values[v].shape, dtype=var_dtypes[v])
         for v in var_values
@@ -114,6 +94,7 @@ def avg_model(checkpoints, checkpoints_dir):
 
     tf.logging.info("Averaged checkpoints saved in %s", output_path)
     print("Averaged checkpoints saved in %s"%output_path)
+    return output_path
 
 
 if __name__ == "__main__":

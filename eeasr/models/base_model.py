@@ -18,11 +18,11 @@ class BaseModel(object):
   def __init__(self, config, num_gpus):
     self.graph = tf.Graph()
     self._config = config
-    global is_attention_smoothing
-    is_attention_smoothing = self._config.is_attention_smoothing
-    logging.info('[ZSY_INFO]is_attention_smoothing='
-        + str(is_attention_smoothing))
-    logging.info('[ZSY_INFO]is_lsoftmax=' + str(self._config.is_lsoftmax))
+    # global is_attention_smoothing
+    # is_attention_smoothing = self._config.is_attention_smoothing
+    # logging.info('[ZSY_INFO]is_attention_smoothing='
+    #     + str(is_attention_smoothing))
+    # logging.info('[ZSY_INFO]is_lsoftmax=' + str(self._config.is_lsoftmax))
     self._devices = ['/gpu:%d' % i for i in
         range(num_gpus)] if num_gpus > 0 else ['/cpu:0']
 

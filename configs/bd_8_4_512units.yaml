@@ -4,6 +4,7 @@ dst_vocab: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/bd_vocab'
 apply_sentence_cmvn: False # Use global cmvn
 global_cmvn_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/global_cmvn.txt'
 dst_vocab_size: 4336
+vocab_size: 4335
 #### hidden_units: 512
 hidden_units: 512
 scale_embedding: True

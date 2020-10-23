@@ -8,6 +8,7 @@ import logging
 import yaml
 import tensorflow as tf
 import numpy as np
+from attrdict import AttrDict
 from argparse import ArgumentParser
 from tempfile import mkstemp
 from tensorflow.python import debug as tf_debug
@@ -165,6 +166,7 @@ if __name__ == '__main__':
   from ctypes import cdll
 
   cdll.LoadLibrary('/usr/local/cuda/lib64/libcudnn.so')
+  #cdll.LoadLibrary('/usr/local/cuda-9.0/lib64/libcudnn.so')
   import os
 
   os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -173,13 +175,21 @@ if __name__ == '__main__':
 
   parser = ArgumentParser()
   parser.add_argument('-c', '--config', dest='config')
+  parser.add_argument('-ch', '--avg_checkpoint', dest='avg_checkpoint')
   args = parser.parse_args()
+
+  
   # Read config
   if not args.config:
     args.config = './config_template_pinyin.yaml'
-  config = eeasr.dataloader.test_data_loader.AttrDict(
-          yaml.load(open(args.config)))
+  config = yaml.load(open(args.config))
+  if args.avg_checkpoint:
+    config['test']['checkpoint'] = 'averaged.ckpt-0'
+    config['test']['set1']['output_path'] = '/'.join(config['test']['set1']['output_path'].split('/')[:-1])+'/averaged_result.txt'
+  config = AttrDict(config)
+  
   # Logger
+  import pdb;pdb.set_trace()
   logging.basicConfig(level=logging.INFO)
   evaluator = Evaluator()
   evaluator.init_from_config(config)
