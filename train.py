@@ -12,7 +12,7 @@ import numpy as np
 import tensorflow as tf
 
 from eeasr import model_registry
-from eeasr.evaluate_sb_asr import Evaluator
+from evaluate import Evaluator
 from eeasr.core import utils
 from eeasr.dataloader import data_loader_bd as data_loader_bd
 from eeasr.dataloader import data_loader_read_from_scp as data_loader

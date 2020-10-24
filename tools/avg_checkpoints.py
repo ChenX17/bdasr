@@ -4,7 +4,7 @@ from __future__ import print_function
 '''
 Date: 2020-10-23 00:02:20
 LastEditors: Xi Chen(chenxi50@lenovo.com)
-LastEditTime: 2020-10-23 00:16:46
+LastEditTime: 2020-10-24 23:32:28
 '''
 # Copyright 2017 Google Inc.
 #
@@ -64,14 +64,15 @@ def avg_model(checkpoints_list):
             var_values[name] = np.zeros(shape)
     for checkpoint in checkpoints:
         reader = tf.contrib.framework.load_checkpoint(checkpoint)
-        for name in var_values:
-            if 'alpha' in name:
-                if 'Adam' not in name:
-                    print(name + '=' + str(reader.get_tensor(name)))             
+        for name in var_values:     
             tensor = reader.get_tensor(name)
             var_dtypes[name] = tensor.dtype
             var_values[name] += tensor
         tf.logging.info("Read from checkpoint %s", checkpoint)
+    
+    # average
+    for name in var_values:
+        var_values[name] /= len(checkpoints)
 
     tf_vars = [
         tf.get_variable(v, shape=var_values[v].shape, dtype=var_dtypes[v])

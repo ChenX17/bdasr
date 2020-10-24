@@ -1,7 +1,7 @@
 '''
 Date: 2020-10-22 22:34:50
 LastEditors: Xi Chen(chenxi50@lenovo.com)
-LastEditTime: 2020-10-23 01:18:09
+LastEditTime: 2020-10-24 23:40:37
 '''
 import yaml
 import codecs
@@ -62,9 +62,11 @@ if __name__ == "__main__":
       cer_dict[ids] = compute_cer(to_process)*100
       print(ids,cer_dict[ids])
       
+  print('step 3: average five best epoch')     
   cer_dict_sorted = sorted(cer_dict.items(), key=lambda x: x[1])
   
-  print(cer_dict_sorted)
+  # import pdb;pdb.set_trace()
+  # print(cer_dict_sorted)
   best_5_cer = cer_dict_sorted[:5]
   pre_str = os.path.join(config.model_dir, 'model_epoch_')
   checkpoints_list = []
@@ -73,15 +75,26 @@ if __name__ == "__main__":
     checkpoints_list.append(pre_str+k)
   avg_model_path = avg_model(checkpoints_list)
   
-  os.system('CUDA_VISIBLE_DEVICES=1,2 python evaluate.py -c %s -ch True'%(args.config_file))
-  import pdb;pdb.set_trace()
+  print('step 4: decode with the averaged model')
+  os.system('CUDA_VISIBLE_DEVICES=4,5,6,7 python evaluate.py -c %s -ch True'%(args.config_file))
+  # import pdb;pdb.set_trace()
 
   avg_result = config.test.set1.output_path = '/'.join(config.test.set1.output_path.split('/')[:-1])+'/averaged_result.txt'
+  
+  print('compute cer')
+  ref_file = './data/test_text'
+
+  ref_dict = {}
+  for line in codecs.open(ref_file, 'r', 'utf-8').readlines():
+    line = line.strip()
+    uttid,text = line.split(' ')
+    ref_dict[uttid] = text
   
   to_process = []
   for line in codecs.open(avg_result, 'r', 'utf-8').readlines():
     line = line.strip()
     line = re_sig.sub('',line)
+    # import pdb;pdb.set_trace()
     if len(line.split('\t'))!=2:
         uttid = line.split('\t')[0]
         text = u''

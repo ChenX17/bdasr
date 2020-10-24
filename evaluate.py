@@ -189,7 +189,6 @@ if __name__ == '__main__':
   config = AttrDict(config)
   
   # Logger
-  import pdb;pdb.set_trace()
   logging.basicConfig(level=logging.INFO)
   evaluator = Evaluator()
   evaluator.init_from_config(config)

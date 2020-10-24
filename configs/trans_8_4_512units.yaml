@@ -39,7 +39,7 @@ train:
     debug: False
     target_len_limit: 100
     #max_length: 5000
-    num_epochs: 50
+    num_epochs: 70
     # Discarded
     #num_steps: 300000
     max_steps: 600000
