@@ -18,17 +18,16 @@ from __future__ import division
 from __future__ import print_function
 
 import math
-
+import logging
 import numpy as np
 import tensorflow as tf
 from six.moves import xrange  # pylint: disable=redefined-builtin
 from tensorflow.python.framework import function
 
-from third_party.tensor2tensor import expert_utils as eu
+from eeasr.core import expert_utils as eu
 
 # This is a global setting. When turned off, no @function.Defun is used.
 allow_defun = True
-
 
 def saturating_sigmoid(x):
   """Saturating sigmoid: 1.2 * sigmoid(x) - 0.1 cut to [0, 1]."""
@@ -268,7 +267,7 @@ def conv_internal(conv_fn, inputs, filters, kernel_size, **kwargs):
   # Manually setting the shape to be unknown in the middle two dimensions so
   # that the `tf.cond` below won't throw an error based on the convolution
   # kernels being too large for the data.
-  inputs._shape = tf.TensorShape([static_shape[0], None, None, static_shape[3]])  # pylint: disable=protected-access
+  inputs.set_shape = tf.TensorShape([static_shape[0], None, None, static_shape[3]])  # pylint: disable=protected-access
   if kernel_size[1] == 1 or force2d:
     # Avoiding the cond below can speed up graph and gradient construction.
     return conv2d_kernel(kernel_size, "single")
@@ -1335,3 +1334,76 @@ def smoothing_cross_entropy(logits, labels, vocab_size, confidence):
     xentropy = tf.nn.softmax_cross_entropy_with_logits(
         logits=logits, labels=soft_targets)
     return xentropy - normalizing
+
+def residual(input1, input2, dropout_rate):
+  """Residual connection.
+
+  Compute a residual connection add layer norm:
+    Y = layer_norm(X1 + dropout(X2))
+  Args:
+    input1: A Tensor.
+    input2: A Tensor.
+    dropout_rate: A float range from [0, 1).
+
+  Returns:
+    A Tensor with the same shape of input1 and input2.
+  """
+  outputs = input1 + tf.nn.dropout(input2, 1 - dropout_rate)
+  outputs = layer_norm(outputs)
+  return outputs
+
+def residual_gnn(input1, input2, dropout_rate):
+  """Residual connection.
+
+  Compute a residual connection add layer norm:
+    Y = layer_norm(X1 + dropout(X2))
+  Args:
+    input1: A Tensor.
+    input2: A Tensor.
+    dropout_rate: A float range from [0, 1).
+
+  Returns:
+    A Tensor with the same shape of input1 and input2.
+  """
+  alpha = tf.get_variable("alpha",shape=[1], initializer=tf.ones_initializer)
+  outputs = alpha * input1 + tf.nn.dropout(input2, 1 - dropout_rate)
+  outputs = layer_norm(outputs)
+  return outputs
+
+def dense(inputs,
+          output_size,
+          activation=tf.identity,
+          use_bias=True,
+          reuse_kernel=None,
+          reuse=None,
+          name=None):
+  argcount = activation.func_code.co_argcount
+  if activation.func_defaults:
+    argcount -= len(activation.func_defaults)
+  assert argcount in (1, 2)
+  with tf.variable_scope(name, "dense", reuse=reuse):
+    if argcount == 1:
+      input_size = inputs.get_shape().as_list()[-1]
+      inputs_shape = tf.unstack(tf.shape(inputs))
+      inputs = tf.reshape(inputs, [-1, input_size])
+      with tf.variable_scope(tf.get_variable_scope(), reuse=reuse_kernel):
+        w = tf.get_variable("kernel", [output_size, input_size])
+      outputs = tf.matmul(inputs, w, transpose_b=True)
+      if use_bias:
+        b = tf.get_variable("bias", [output_size], initializer=tf.zeros_initializer)
+        outputs += b
+      outputs = activation(outputs)
+      return tf.reshape(outputs, inputs_shape[:-1] + [output_size])
+    else:
+      arg1 = dense(inputs, output_size, tf.identity, use_bias, name='arg1')
+      arg2 = dense(inputs, output_size, tf.identity, use_bias, name='arg2')
+      return activation(arg1, arg2)
+
+def ff_hidden(inputs, hidden_size, output_size, activation, use_bias=True, reuse=None, name=None):
+  with tf.variable_scope(name, "ff_hidden", reuse=reuse):
+    hidden_outputs = dense(inputs, hidden_size, activation, use_bias)
+    outputs = dense(hidden_outputs, output_size, tf.identity, use_bias)
+    return outputs
+
+
+

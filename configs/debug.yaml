@@ -22,7 +22,8 @@ mask_prob: 0.0
 mask_rate: 0.0
 ff_activation: 'glu'
 #model_dir: '/data00/home/labspeech_intern/chenxi/project/rebuild_transformerasr/bd_transformer_aishell_model'
-model_dir: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4gpus_512units'
+model_dir: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4_gpus_512units_debug'
+spec_aug: True
 # Discarded
 #bucket_min: 50
 # Discarded
@@ -31,7 +32,7 @@ model_dir: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4gpus_512units
 #bucket_step: 10
 #min_count_in_bucket: 100
 train:
-    num_gpus: 4
+    num_gpus: 2
     #tokens_per_batch: 50000
     feat_file_pattern: '/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank/raw_fbank_train.*.scp'
     label_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/text'
@@ -64,7 +65,7 @@ train:
     var_filter: ''
 dev:
     feat_file_pattern: '/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank/raw_fbank_dev.[1-4].ark'
-    output_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4gpus_512units/dev_decoding_results/'
+    output_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4_gpus_512units_debug/dev_decoding_results/'
 
 test:
     batch_size: 40
@@ -76,5 +77,5 @@ test:
     set1:
         feat_file_pattern: '/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank/raw_fbank_test.[1-4].ark'
         label_file: ''
-        output_path: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4gpus_512units/test_decoding_results/bd_decoder_8_4_4gpus_epoch_50.txt'
+        output_path: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4_gpus_512units_debug/test_decoding_results/bd_decoder_8_4_4gpus_epoch_50.txt'
         cmd:

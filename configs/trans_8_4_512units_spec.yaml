@@ -1,44 +1,40 @@
 ---
-model: 'BD_TransformerModel'
-dst_vocab: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/bd_vocab'
+model: 'TransformerModel'
+dst_vocab: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/vocab'
 apply_sentence_cmvn: False # Use global cmvn
 global_cmvn_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/global_cmvn.txt'
-dst_vocab_size: 4336
+dst_vocab_size: 4335
 vocab_size: 4335
 #### hidden_units: 512
 hidden_units: 512
 scale_embedding: True
 tie_embedding_and_softmax: True
 attention_dropout_rate: 0.0
+#### residual_dropout_rate: 0.1
 residual_dropout_rate: 0.2
 encoder_num_blocks: 8
 decoder_num_blocks: 4
-ff_units: 4
 latent_k_dim: 50
 latent_v_dim: 50
 #### num_heads: 8
 num_heads: 8
-mask_prob: 0.0
-mask_rate: 0.0
 ff_activation: 'glu'
-#model_dir: '/data00/home/labspeech_intern/chenxi/project/rebuild_transformerasr/bd_transformer_aishell_model'
-model_dir: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4gpus_512units'
+model_dir: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4_gpus_512units_debug_spec'
 # Discarded
 #bucket_min: 50
 # Discarded
 #bucket_max: 10000
 # Discarded
 #bucket_step: 10
+# Discarded
 #min_count_in_bucket: 100
 train:
     num_gpus: 4
     #tokens_per_batch: 50000
     feat_file_pattern: '/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank/raw_fbank_train.*.scp'
     label_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/text'
-    sudo_l2r_target: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/text'
-    sudo_r2l_target: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/text'
     frame_bucket_limit: '[200, 300, 500, 800, 1200, 1400, 1800, 3000]'
-    batch_bucket_limit_per_gpu: '[220, 200, 180, 140, 100, 100, 60, 20]'
+    batch_bucket_limit_per_gpu: '[220, 200, 180, 140, 100, 100, 60, 20]'   
     batch_factor: 0.3
     debug: False
     target_len_limit: 100
@@ -46,25 +42,25 @@ train:
     num_epochs: 70
     # Discarded
     #num_steps: 300000
-    max_steps: 240000
+    max_steps: 600000
     # debug: 200, train: 500
     save_freq: -500
     # show_freq: 10
     summary_freq: 100
-    eval_on_dev: True
     grads_clip: 5
     optimizer: 'adam_decay'
     learning_rate: 1
     warmup_steps: 16000
     label_smoothing: 0.1
     #toleration: 10
+    eval_on_dev: True
 #    input_dim: 129
 #    input_dim: 516
     input_dim: 240
     var_filter: ''
 dev:
     feat_file_pattern: '/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank/raw_fbank_dev.[1-4].ark'
-    output_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4gpus_512units/dev_decoding_results/'
+    output_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4_gpus_512units_debug_spec/dev_decoding_results/'
 
 test:
     batch_size: 40
@@ -75,6 +71,7 @@ test:
     checkpoint: 'model_epoch_50'
     set1:
         feat_file_pattern: '/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank/raw_fbank_test.[1-4].ark'
+        #feat_file_pattern: ''/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank/raw_fbank_dev.[1-4].ark''
         label_file: ''
-        output_path: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4gpus_512units/test_decoding_results/bd_decoder_8_4_4gpus_epoch_50.txt'
+        output_path: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4_gpus_512units_debug_spec/test_decoding_results/transformer_8_4_4gpus_epoch_50.txt'
         cmd:

@@ -13,18 +13,18 @@ from argparse import ArgumentParser
 from tempfile import mkstemp
 from tensorflow.python import debug as tf_debug
 
-from eeasr.core import utils
-from eeasr.models.base_model import BaseModel
-from eeasr.models.transformer_model import TransformerModel
-import eeasr.dataloader.test_data_loader
-from eeasr.models.bd_transformer_model import BD_TransformerModel
+from core import utils
+from models.base_model import BaseModel
+from models.transformer_model import TransformerModel
+import dataloader.test_data_loader
+from models.bd_transformer_model import BD_TransformerModel
 is_debug = False #False
 class Evaluator(object):
   """
   Evaluate the model.
   """
-  def __init__(self):
-    pass
+  def __init__(self, config):
+    self.config = config
 
   def init_from_config(self, config):
     self.model = eval(config.model)(config, config.test.num_gpus)
@@ -57,7 +57,7 @@ class Evaluator(object):
     self.data_reader = eeasr.dataloader.test_data_loader.DataReader(self.config)
 
   def beam_search(self, X):
-    if 'BD' in config.model:
+    if 'BD' in self.config.model:
       return self.sess.run([self.model.prediction, self.model.scores, self.model.alive_probs, self.model.finished_flags],
                 feed_dict=eeasr.dataloader.test_data_loader.expand_feed_dict(
                 {self.model.src_pls: X}))
@@ -102,10 +102,8 @@ class Evaluator(object):
     batch_size = self.config.test.batch_size * self.config.test.num_gpus
     for X,uttids in self.data_reader.get_test_batches(src_path, batch_size):
 
-      
-
       # if bd, post process
-      if 'BD' in config.model:
+      if 'BD' in self.config.model:
         # print scores for debug
         Y, scores, alive_probs, finished_flags = self.beam_search(X)
         Y = self.post_process(Y)
@@ -165,8 +163,8 @@ class Evaluator(object):
 if __name__ == '__main__':
   from ctypes import cdll
 
-  cdll.LoadLibrary('/usr/local/cuda/lib64/libcudnn.so')
-  #cdll.LoadLibrary('/usr/local/cuda-9.0/lib64/libcudnn.so')
+  #cdll.LoadLibrary('/usr/local/cuda/lib64/libcudnn.so')
+  cdll.LoadLibrary('/usr/local/cuda-9.0/lib64/libcudnn.so')
   import os
 
   os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -190,7 +188,7 @@ if __name__ == '__main__':
   
   # Logger
   logging.basicConfig(level=logging.INFO)
-  evaluator = Evaluator()
+  evaluator = Evaluator(config)
   evaluator.init_from_config(config)
   for attr in config.test:
     if attr.startswith('set'):

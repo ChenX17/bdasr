@@ -1,7 +1,7 @@
 '''
 Date: 2020-10-22 22:34:50
 LastEditors: Xi Chen(chenxi50@lenovo.com)
-LastEditTime: 2020-10-24 23:40:37
+LastEditTime: 2020-10-26 21:42:19
 '''
 import yaml
 import codecs
@@ -68,6 +68,7 @@ if __name__ == "__main__":
   # import pdb;pdb.set_trace()
   # print(cer_dict_sorted)
   best_5_cer = cer_dict_sorted[:5]
+  print(best_5_cer)
   pre_str = os.path.join(config.model_dir, 'model_epoch_')
   checkpoints_list = []
   for item in best_5_cer:

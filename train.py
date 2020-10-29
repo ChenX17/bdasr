@@ -13,12 +13,12 @@ import tensorflow as tf
 
 from eeasr import model_registry
 from evaluate import Evaluator
-from eeasr.core import utils
-from eeasr.dataloader import data_loader_bd as data_loader_bd
-from eeasr.dataloader import data_loader_read_from_scp as data_loader
-from eeasr.models.base_model import BaseModel
-from eeasr.models.transformer_model import TransformerModel
-from eeasr.models.bd_transformer_model import BD_TransformerModel
+from core import utils
+from dataloader import data_loader_bd as data_loader_bd
+from dataloader import data_loader_read_from_scp as data_loader
+from models.base_model import BaseModel
+from models.transformer_model import TransformerModel
+from models.bd_transformer_model import BD_TransformerModel
 
 tf.reset_default_graph()
 tf.set_random_seed(8)
@@ -64,13 +64,12 @@ def train(config):
       logger.info('Nothing to be reload from disk.')
 
     def train_one_step(batch):
-      (feat_batch, target_batch, masked_target, batch_size) = batch
+      (feat_batch, target_batch, batch_size) = batch
       logger.info("feat_batch_size: " + str(feat_batch.shape)
               + " label_batch_size: " + str(target_batch.shape))
       feed_dict = data_loader.expand_feed_dict(
               {model.src_pls: feat_batch,
-               model.label_pls: target_batch,
-               model.masked_label_pls: masked_target})
+               model.label_pls: target_batch})
       step, lr, loss, _ = sess.run(
         [model.global_step, model.learning_rate, model.loss, model.train_op],
         feed_dict=feed_dict)
@@ -79,13 +78,13 @@ def train(config):
         summary_writer.add_summary(summary, global_step=step)
       return step, lr, loss
 
-    def maybe_save_model():
+    def maybe_save_model(config):
       mp = config.model_dir + '/model_epoch_{}'.format(epoch)
       model.saver.save(sess, mp)
       logger.info('Save model in %s.' % mp)
       
       if config.train.eval_on_dev:
-        evaluator = Evaluator()
+        evaluator = Evaluator(config)
         evaluator.init_from_existed(config, model, sess)
         evaluator.translate(config.dev.feat_file_pattern,
                             config.dev.output_file + 'decode_result_epoch_' + '{}'.format(str(epoch)))
@@ -110,10 +109,10 @@ def train(config):
         logger.info(
             'epoch: %d\tstep: %d\tlr: %.6f\tloss: %.4f'
             '\ttime: %.4f\tbatch_size: %d' %
-            (epoch, step, lr, loss, time.time() - start_time, batch[3]))
+            (epoch, step, lr, loss, time.time() - start_time, batch[2]))
         # Save model
         if config.train.save_freq > 0 and step % config.train.save_freq == 0:
-          maybe_save_model()
+          maybe_save_model(config=config)
 
         # Stop training.
         if config.train.max_steps and step >= config.train.max_steps:
@@ -122,7 +121,7 @@ def train(config):
 
       # Save model per epoch if config.train.save_freq is less or equal than zero.
       if config.train.save_freq <= 0:
-        maybe_save_model()
+        maybe_save_model(config=config)
 
     logger.info("Finish training.")
 

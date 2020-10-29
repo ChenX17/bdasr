@@ -19,7 +19,7 @@ import six.moves.queue as queue
 import tensorflow as tf
 import tensorflow.contrib.framework as tff
 
-from eeasr.dataloader import data_augmentation
+from dataloader import data_augmentation
 
 PAD_INDEX = 0
 UNK_INDEX = 1
