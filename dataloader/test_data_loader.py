@@ -227,6 +227,7 @@ class DataReader(object):
         feat_batch, feat_batch_mask = self._create_feat_batch(cache)
         yield feat_batch, uttids
       del(cache)
+  
   def indices_to_words(self, Y, o='dst'):
     assert o in ('src', 'dst')
     idx2word = self.idx2src if o == 'src' else self.idx2dst

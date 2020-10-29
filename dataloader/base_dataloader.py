@@ -18,28 +18,16 @@ import numpy as np
 import six.moves.queue as queue
 import tensorflow as tf
 import tensorflow.contrib.framework as tff
-
 from dataloader import data_augmentation
 
 PAD_INDEX = 0
 UNK_INDEX = 1
-BOS_INDEX = 2
 EOS_INDEX = 3
 
 PAD = u'<PAD>'
 UNK = u'<UNK>'
-BOS = u'<S>'
 EOS = u'</S>'
 
-class AttrDict(dict):
-  def __init__(self, *args, **kwargs):
-    super(AttrDict, self).__init__(*args, **kwargs)
-  def __getattr__(self, item):
-    if item not in self:
-      return None
-    if type(self[item]) is dict:
-      self[item] = AttrDict(self[item])
-    return self[item]
 
 class DataLoader(object):
   """Read data and create batches for training and testing."""
@@ -61,7 +49,6 @@ class DataLoader(object):
     self.feat_files = glob.glob(self._config.train.feat_file_pattern)
     self.scp_files = glob.glob(self._config.train.feat_file_pattern)
     self.label_file = self._config.train.label_file
-
     self.frame_bucket_limit = self._config.train.frame_bucket_limit
     self.frame_bucket_limit = self.frame_bucket_limit\
         .replace('[','')\
@@ -84,16 +71,15 @@ class DataLoader(object):
     self.select_bucket_init()
     self.load_label_init()
 
+
   def reset(self):
     """Reset Dataloader for new epoch."""
     logging.info("Reset dataloader.")
     self._put_done = False
-    threading.Thread(target=self.get_training_batches_with_buckets).start()
+    threading.Thread(target=self.get_training_batches_with_buckets_using_scp).start()
 
   def load_vocab_init(self):
-    """Load vocab from disk.
-    The first four items in the vocab should be <PAD>, <UNK>, <S>, </S>
-    """
+    """Load vocab from disk."""
     def load_vocab_(path, vocab_size):
       vocab = [line.split('\t')[0] for line in codecs.open(path, 'r', 'utf-8')]
       vocab = vocab[:vocab_size]
@@ -149,8 +135,10 @@ class DataLoader(object):
     logging.info('loaded dst_shuf_path=' + str(self.label_file) +
         ',size=' + str(len(self.uttid_target_map)))
 
-  def get_training_batches_with_buckets(self, shuffle=True):
+
+  def get_training_batches_with_buckets_using_scp(self, shuffle=True):
     """Generate batches according to bucket setting."""
+    # Shuffle the training files.
     dst_path = self.label_file
 
     total_scp = []
@@ -168,21 +156,18 @@ class DataLoader(object):
     total_shuf_scp = total_scp
 
     #re-write the shuffled scp to src_shuf_path
-    scp_shuf_path = self.scp_files[0].split('.')[0]+'_shuf_'+str(random.randint(0,99))+'.scp'
+    scp_shuf_path =  self.scp_files[0].split('.')[0]+'_shuf_'+str(random.randint(0,99))+'.scp'
     logging.info("shuffled scp is stored in "+ scp_shuf_path)
     f = open(scp_shuf_path,'w')
     f.writelines(total_shuf_scp)
     f.close()
+
     # Caches to store data.
     caches = {}
     for bucket_index in range(len(self.frame_bucket_limit)):
       # Form: [src sentences, dst sentences, num_sentences].
       caches[bucket_index] = [[], [], 0]
 
-    '''for index, src_shuf_file in enumerate(src_shuf_path):
-      logging.info('training feat file: '
-             + os.path.basename(src_shuf_file)
-             + '  %d/%d' % (index+1, len(src_shuf_path)))'''
     ark_reader = kaldi_io.read_mat_scp(scp_shuf_path)
     while True:
         #uttid, input, looped = scp_reader.read_next_utt()
@@ -219,6 +204,13 @@ class DataLoader(object):
       input = input.reshape(stack_len,-1)
       target_len = len(target)
 
+      if self._config.spec_aug is not None:
+        if uttid.split('-')[0]=='0.9' or uttid.split('-')[0]=='1.1':
+          continue
+        input = data_augmentation.apply_fre_mask(input, F=27, m_F=2)
+        input = data_augmentation.apply_time_mask(input, T=100, p=0.2, m_T=2)
+
+
       if target_len == 0:
         continue
       if target_len > self._config.train.target_len_limit - 1:
@@ -243,11 +235,10 @@ class DataLoader(object):
 
       if caches[bucket_index][2] >= self.batch_bucket_limit[bucket_index]:
         feat_batch, feat_batch_mask = self._create_feat_batch(caches[bucket_index][0])
-        target_batch, target_batch_mask = self._create_target_batch(caches[bucket_index][1], self.dst2idx)
-        # yield (feat_batch, feat_batch_mask, target_batch, target_batch_mask)
-        #yield (feat_batch, target_batch, len(caches[bucket_index][0]))
+        target_batch = self._create_target_batch(caches[bucket_index][1], self.dst2idx)
         self._batch_queue.put((feat_batch, target_batch, len(caches[bucket_index][0])))
         caches[bucket_index] = [[], [], 0]
+    os.remove(scp_shuf_path)
     self._put_done = True
     del(caches)
 
@@ -271,7 +262,7 @@ class DataLoader(object):
     feat_batch.fill(PAD_INDEX)
     feat_batch_mask = np.ones([batch_size, maxlen], dtype=np.int32)
     for i in range(batch_size):
-      feat = indices[i][::-1]
+      feat = indices[i]
       feat_len, feat_dim = np.shape(feat)
       feat_batch[i,:feat_len, :] = np.copy(feat)
       feat_batch_mask[i, :feat_len] = 0
@@ -282,12 +273,11 @@ class DataLoader(object):
     indices = []
     for sent in sents:
       x = []
-
       for word in (sent + [EOS]):
         x_tmp = phone2idx.get(word, UNK_INDEX)
         x.append(x_tmp)
         if x_tmp == UNK_INDEX and word != UNK:
-          logging.warn('=========[ZSY]x_tmp=UNK_INDEX, word=' + str(word.encode('UTF-8')))
+          logging.warn('x_tmp=UNK_INDEX, word=' + str(word.encode('UTF-8')))
       indices.append(x)
 
     # Pad to the same length.
@@ -297,12 +287,12 @@ class DataLoader(object):
     target_batch.fill(PAD_INDEX)
     target_batch_mask = np.ones([batch_size, maxlen], dtype=np.int32)
     for i, x in enumerate(indices):
-      target_batch[i, :len(x)] = x[:-1][::-1]+[3]
+      target_batch[i, :len(x)] = x
       target_batch_mask[i, :len(x)] = 0
-    return target_batch, target_batch_mask
+    return target_batch
 
-  def get_test_batches_with_tokens_per_batch(self, src_path, tokens_per_batch):
-    '''get test batch when the number of frames exceed tokens_per_batch'''
+  def get_test_batches(self, src_path, tokens_per_batch):
+    #logging.info('-----------get_test_batches-------------')
     src_path = glob.glob(src_path)
     for index, src_file in enumerate(src_path):
       logging.info('testing feat file: '
@@ -311,7 +301,6 @@ class DataLoader(object):
       ark_reader = kaldi_io.read_mat_ark(src_file)
       cache = []
       uttids = []
-      count = 0
       while True:
         try:
           uttid, input = ark_reader.next()
@@ -327,40 +316,37 @@ class DataLoader(object):
           if mean and stddev:
             input = (input - mean) / stddev
         ori_input_len = len(input)
-        if ori_input_len < 3:
-          continue
         stack_len = ori_input_len // 3
         input = input[:stack_len*3, :]
         input = input.reshape(stack_len,-1)
-        count += stack_len
 
         cache.append(input)
         uttids.append(uttid)
-        if count >= tokens_per_batch:
-          feat_batch, feat_batch_mask = self._create_feat_batch(cache)
+        if len(cache) >= batch_size:
+          feat_batch, feat_batch_mask = self._create_test_feat_batch(cache)
           yield feat_batch, uttids
-          count = 0
           cache = []
           uttids = []
       if cache:
-        feat_batch, feat_batch_mask = self._create_feat_batch(cache)
+        feat_batch, feat_batch_mask = self._create_test_feat_batch(cache)
         yield feat_batch, uttids
-      del(cache)
 
-  def indices_to_words(self, Y, o='dst'):
-      assert o in ('src', 'dst')
-      idx2word = self.idx2src if o == 'src' else self.idx2dst
-      sents = []
-      for y in Y:  # for each sentence
-        sent = []
-        for i in y:  # For each word
-          if i == 3:  # </S>
-            break
-          w = idx2word[i]
-          sent.append(w)
-        sents.append('*'.join(sent))
-      return sents
-
+    def _create_test_feat_batch(self, indices):
+        # Pad to the same length.
+        # indices的数据是[[feat_len1, feat_dim], [feat_len2, feat_dim], ...]
+        assert len(indices) > 0
+        batch_size = len(indices)
+        maxlen = max([len(s) for s in indices])
+        feat_dim = indices[0].shape[1]
+        feat_batch = np.zeros([batch_size, maxlen, feat_dim], dtype=np.float32)
+        #feat_batch.fill(PAD_INDEX)
+        feat_batch_mask = np.ones([batch_size, maxlen], dtype=np.int32)
+        for i in range(batch_size):
+            feat = indices[i]
+            feat_len, feat_dim = np.shape(feat)
+            feat_batch[i,:feat_len, :] = np.copy(feat)
+            feat_batch_mask[i, :feat_len] = 0
+        return feat_batch, feat_batch_mask
 def expand_feed_dict(feed_dict):
   """If the key is a tuple of placeholders,
   split the input data then feed them into these placeholders.
@@ -386,4 +372,3 @@ def expand_feed_dict(feed_dict):
         base = end
   return new_feed_dict
 
-DataReader=DataLoader

@@ -14,6 +14,9 @@ import tensorflow as tf
 from eeasr import model_registry
 from evaluate import Evaluator
 from core import utils
+from dataloader.base_dataloader import DataLoader
+from dataloader.bd_dataloader import BDDataLoader
+from dataloader.reverse_dataloader import REDataLoader
 from dataloader import data_loader_bd as data_loader_bd
 from dataloader import data_loader_read_from_scp as data_loader
 from models.base_model import BaseModel
@@ -34,9 +37,11 @@ def train(config):
 
   """Train a model with a config file."""
   if 'BD' in config.model:
+    #data_reader = BDDataLoader(config=config)
     data_reader = data_loader_bd.DataReader(config=config)
   else:
-    data_reader = data_loader.DataReader(config=config)
+    data_reader = DataLoader(config=config)
+    #data_reader = data_loader.DataReader(config=config)
   
   model = eval(config.model)(config=config, num_gpus=config.train.num_gpus)
   model.build_train_model(test=config.train.eval_on_dev)

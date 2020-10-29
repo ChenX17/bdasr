@@ -1,3 +1,4 @@
+# coding=utf-8
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -5,12 +6,9 @@ from __future__ import print_function
 '''
 Date: 2020-10-26 15:04:03
 LastEditors: Xi Chen(chenxi50@lenovo.com)
-LastEditTime: 2020-10-26 17:57:14
+LastEditTime: 2020-10-29 20:21:06
 '''
-# coding=utf-8
-# Author: nihao(nihao@bytedance.com)
-# Date: 2019.08.11
-#
+
 """Data augumentation."""
 
 
@@ -18,7 +16,6 @@ import numpy as np
 import random
 import tensorflow as tf
 from tensorflow.contrib.image import sparse_image_warp
-# from tensorflow_addons.image import sparse_image_warp
 
 
 def apply_time_warp(data, W):
