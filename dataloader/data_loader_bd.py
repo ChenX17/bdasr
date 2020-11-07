@@ -21,6 +21,9 @@ import tensorflow.contrib.framework as tff
 
 from dataloader import data_augmentation
 
+random.seed(8)
+np.random.seed(8)
+
 PAD_INDEX = 0
 UNK_INDEX = 1
 L2R_INDEX = 2
@@ -169,7 +172,7 @@ class DataLoader(object):
     logging.info('loaded dst_shuf_path=' + str(self.sudo_r2l_target) +
         ',size=' + str(len(self.sudo_r2l_target_map)))
 
-  def get_training_batches_with_buckets(self, shuffle=True):
+  def get_training_batches_with_buckets(self, shuffle=False):
     """Generate batches according to bucket setting."""
     # Shuffle the training files.
     src_path = self.feat_files
@@ -287,7 +290,7 @@ class DataLoader(object):
       logging.info("queue size: " + str(self._batch_queue.qsize()))
     return self._batch_queue.get()
 
-  def get_training_batches_with_buckets_using_scp(self, shuffle=True):
+  def get_training_batches_with_buckets_using_scp(self, shuffle=False):
     """Generate batches according to bucket setting."""
     # Shuffle the training files.
     total_scp = []

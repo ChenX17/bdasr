@@ -347,28 +347,53 @@ class DataLoader(object):
             feat_batch[i,:feat_len, :] = np.copy(feat)
             feat_batch_mask[i, :feat_len] = 0
         return feat_batch, feat_batch_mask
-def expand_feed_dict(feed_dict):
-  """If the key is a tuple of placeholders,
-  split the input data then feed them into these placeholders.
-  """
-  new_feed_dict = {}
-  for k, v in feed_dict.items():
-    if type(k) is not tuple:
-      new_feed_dict[k] = v
-    else:
-      # Split v along the first dimension.
-      n = len(k)
-      batch_size = v.shape[0]
-      span = batch_size // n
-      remainder = batch_size % n
-      # assert span > 0
-      base = 0
-      for i, p in enumerate(k):
-        if i < remainder:
-          end = base + span + 1
+    def expand_feed_dict(self, feed_dict):
+      """If the key is a tuple of placeholders,
+      split the input data then feed them into these placeholders.
+      """
+      new_feed_dict = {}
+      for k, v in feed_dict.items():
+        if type(k) is not tuple:
+          new_feed_dict[k] = v
         else:
-          end = base + span
-        new_feed_dict[p] = v[base: end]
-        base = end
-  return new_feed_dict
+          # Split v along the first dimension.
+          n = len(k)
+          batch_size = v.shape[0]
+          span = batch_size // n
+          remainder = batch_size % n
+          # assert span > 0
+          base = 0
+          for i, p in enumerate(k):
+            if i < remainder:
+              end = base + span + 1
+            else:
+              end = base + span
+            new_feed_dict[p] = v[base: end]
+            base = end
+        return new_feed_dict
+
+  def expand_feed_dict(self, feed_dict):
+    """If the key is a tuple of placeholders,
+    split the input data then feed them into these placeholders.
+    """
+    new_feed_dict = {}
+    for k, v in feed_dict.items():
+      if type(k) is not tuple:
+        new_feed_dict[k] = v
+      else:
+        # Split v along the first dimension.
+        n = len(k)
+        batch_size = v.shape[0]
+        span = batch_size // n
+        remainder = batch_size % n
+        # assert span > 0
+        base = 0
+        for i, p in enumerate(k):
+          if i < remainder:
+            end = base + span + 1
+          else:
+            end = base + span
+          new_feed_dict[p] = v[base: end]
+          base = end
+    return new_feed_dict
 

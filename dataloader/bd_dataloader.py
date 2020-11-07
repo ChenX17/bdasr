@@ -3,9 +3,15 @@ import random
 import logging
 import kaldi_io
 import numpy as np
+import six.moves.queue as queue
+import codecs
+import glob
 
 from base_dataloader import DataLoader
 import data_augmentation
+
+random.seed(8)
+np.random.seed(8)
 
 PAD_INDEX = 0
 UNK_INDEX = 1
@@ -18,9 +24,46 @@ EOS = u'</S>'
 class BDDataLoader(DataLoader):
     def __init__(self,config):
         super(BDDataLoader, self).__init__(config=config)
-        #self._config = config
+        # # Variable init.
+        # self._put_done = False
+        # self._batch_queue = queue.Queue(100)
+        # self.bucket_select_dict = {}
+        # self.batch_bucket_limit = []
+        # self.uttid_target_map = {}
 
-    def get_training_batches_with_buckets_using_scp(self, shuffle=True):
+        # # Config init.
+        # self._config = config
+        # self.apply_sentence_cmvn = self._config.apply_sentence_cmvn
+        # self.global_cmvn_file = self._config.global_cmvn_file
+        # self.global_cmvn = self._maybe_load_mean_stddev(self.global_cmvn_file)
+
+        # self.feat_files = glob.glob(self._config.train.feat_file_pattern)
+        # self.scp_files = glob.glob(self._config.train.feat_file_pattern)
+        # self.label_file = self._config.train.label_file
+        # self.frame_bucket_limit = self._config.train.frame_bucket_limit
+        # self.frame_bucket_limit = self.frame_bucket_limit\
+        #     .replace('[','')\
+        #     .replace(']','')\
+        #     .replace(' ','')
+        # self.frame_bucket_limit = [int(i) for i in 
+        #     self.frame_bucket_limit.split(',')]
+        # self.batch_bucket_limit_per_gpu = \
+        #     self._config.train.batch_bucket_limit_per_gpu
+        # self.batch_bucket_limit_per_gpu = self.batch_bucket_limit_per_gpu\
+        #     .replace('[','')\
+        #     .replace(']','')\
+        #     .replace(' ','')
+        # self.batch_bucket_limit_per_gpu = [int(int(i)*self._config.train.batch_factor) for i in self.batch_bucket_limit_per_gpu.split(',')]
+        # logging.info('frame_bucket_limit: ' + str(self.frame_bucket_limit))
+        # logging.info('batch_bucket_limit_per_gpu: ' + str(self.batch_bucket_limit_per_gpu))
+
+        # # Function init.
+        # self.load_vocab_init()
+        # self.select_bucket_init()
+        # self.load_label_init()
+
+
+    def get_training_batches_with_buckets_using_scp(self, shuffle=False):
         """Generate batches according to bucket setting."""
         # Shuffle the training files.
         total_scp = []
@@ -128,12 +171,12 @@ class BDDataLoader(DataLoader):
         indices = []
         for sent in sents:
             x = []
-        for word in (sent + [EOS]):
-            x_tmp = phone2idx.get(word, UNK_INDEX)
-            x.append(x_tmp)
-            if x_tmp == UNK_INDEX and word != UNK:
-                logging.warn('x_tmp=UNK_INDEX, word=' + str(word.encode('UTF-8')))
-        indices.append(x)
+            for word in (sent + [EOS]):
+                x_tmp = phone2idx.get(word, UNK_INDEX)
+                x.append(x_tmp)
+                if x_tmp == UNK_INDEX and word != UNK:
+                    logging.warn('x_tmp=UNK_INDEX, word=' + str(word.encode('UTF-8')))
+            indices.append(x)
 
         # Pad to the same length.
         batch_size = len(sents)

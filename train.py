@@ -36,12 +36,14 @@ logger = logging.getLogger('')
 def train(config):
 
   """Train a model with a config file."""
+  # import pdb;pdb.set_trace()
+  print('model is :', config.model)
   if 'BD' in config.model:
-    #data_reader = BDDataLoader(config=config)
-    data_reader = data_loader_bd.DataReader(config=config)
+    data_reader = BDDataLoader(config=config)
+    # old_data_reader = data_loader_bd.DataReader(config=config)
   else:
     data_reader = DataLoader(config=config)
-    #data_reader = data_loader.DataReader(config=config)
+    # data_reader = data_loader.DataReader(config=config)
   
   model = eval(config.model)(config=config, num_gpus=config.train.num_gpus)
   model.build_train_model(test=config.train.eval_on_dev)
@@ -68,11 +70,12 @@ def train(config):
     else:
       logger.info('Nothing to be reload from disk.')
 
-    def train_one_step(batch):
+    def train_one_step(batch, old_batch=None):
       (feat_batch, target_batch, batch_size) = batch
+      #(old_feat_batch, old_target_batch, old_batch_size) = old_batch
       logger.info("feat_batch_size: " + str(feat_batch.shape)
               + " label_batch_size: " + str(target_batch.shape))
-      feed_dict = data_loader.expand_feed_dict(
+      feed_dict = data_reader.expand_feed_dict(
               {model.src_pls: feat_batch,
                model.label_pls: target_batch})
       step, lr, loss, _ = sess.run(
@@ -101,9 +104,11 @@ def train(config):
       start_epoch = config.train.start_epoch+1
     for epoch in range(start_epoch, config.train.num_epochs+1):
       data_reader.reset()
+      # old_data_reader.reset()
       start_time_data_loader = time.time()
       while True:
         batch = data_reader.get_batch()
+        # old_batch = old_data_reader.get_batch()
         if batch == None:
           break
         logger.info('data_load time: %.4f' %

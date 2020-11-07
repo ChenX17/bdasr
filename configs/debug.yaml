@@ -4,7 +4,7 @@ dst_vocab: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/bd_vocab'
 apply_sentence_cmvn: False # Use global cmvn
 global_cmvn_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/global_cmvn.txt'
 dst_vocab_size: 4336
-vocab_size: 4335
+vocab_size: 4336
 #### hidden_units: 512
 hidden_units: 512
 scale_embedding: True
@@ -32,7 +32,7 @@ spec_aug: True
 #bucket_step: 10
 #min_count_in_bucket: 100
 train:
-    num_gpus: 2
+    num_gpus: 1
     #tokens_per_batch: 50000
     feat_file_pattern: '/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank/raw_fbank_train.*.scp'
     label_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/text'
@@ -72,7 +72,7 @@ test:
     max_target_length: 200
     lp_alpha: 0.6
     beam_size: 2
-    num_gpus: 2
+    num_gpus: 1
     checkpoint: 'model_epoch_50'
     set1:
         feat_file_pattern: '/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank/raw_fbank_test.[1-4].ark'
