@@ -322,7 +322,7 @@ class DataLoader(object):
 
         cache.append(input)
         uttids.append(uttid)
-        if len(cache) >= batch_size:
+        if len(cache) >= self._config.test.batch_size:
           feat_batch, feat_batch_mask = self._create_test_feat_batch(cache)
           yield feat_batch, uttids
           cache = []
@@ -331,46 +331,35 @@ class DataLoader(object):
         feat_batch, feat_batch_mask = self._create_test_feat_batch(cache)
         yield feat_batch, uttids
 
-    def _create_test_feat_batch(self, indices):
-        # Pad to the same length.
-        # indices的数据是[[feat_len1, feat_dim], [feat_len2, feat_dim], ...]
-        assert len(indices) > 0
-        batch_size = len(indices)
-        maxlen = max([len(s) for s in indices])
-        feat_dim = indices[0].shape[1]
-        feat_batch = np.zeros([batch_size, maxlen, feat_dim], dtype=np.float32)
-        #feat_batch.fill(PAD_INDEX)
-        feat_batch_mask = np.ones([batch_size, maxlen], dtype=np.int32)
-        for i in range(batch_size):
-            feat = indices[i]
-            feat_len, feat_dim = np.shape(feat)
-            feat_batch[i,:feat_len, :] = np.copy(feat)
-            feat_batch_mask[i, :feat_len] = 0
-        return feat_batch, feat_batch_mask
-    def expand_feed_dict(self, feed_dict):
-      """If the key is a tuple of placeholders,
-      split the input data then feed them into these placeholders.
-      """
-      new_feed_dict = {}
-      for k, v in feed_dict.items():
-        if type(k) is not tuple:
-          new_feed_dict[k] = v
-        else:
-          # Split v along the first dimension.
-          n = len(k)
-          batch_size = v.shape[0]
-          span = batch_size // n
-          remainder = batch_size % n
-          # assert span > 0
-          base = 0
-          for i, p in enumerate(k):
-            if i < remainder:
-              end = base + span + 1
-            else:
-              end = base + span
-            new_feed_dict[p] = v[base: end]
-            base = end
-        return new_feed_dict
+  def _create_test_feat_batch(self, indices):
+    # Pad to the same length.
+    # indices的数据是[[feat_len1, feat_dim], [feat_len2, feat_dim], ...]
+    assert len(indices) > 0
+    batch_size = len(indices)
+    maxlen = max([len(s) for s in indices])
+    feat_dim = indices[0].shape[1]
+    feat_batch = np.zeros([batch_size, maxlen, feat_dim], dtype=np.float32)
+    #feat_batch.fill(PAD_INDEX)
+    feat_batch_mask = np.ones([batch_size, maxlen], dtype=np.int32)
+    for i in range(batch_size):
+        feat = indices[i]
+        feat_len, feat_dim = np.shape(feat)
+        feat_batch[i,:feat_len, :] = np.copy(feat)
+        feat_batch_mask[i, :feat_len] = 0
+    return feat_batch, feat_batch_mask
+  def indices_to_words(self, Y, o='dst'):
+    assert o in ('src', 'dst')
+    idx2word = self.idx2src if o == 'src' else self.idx2dst
+    sents = []
+    for y in Y:  # for each sentence
+      sent = []
+      for i in y:  # For each word
+        if i == 3:  # </S>
+          break
+        w = idx2word[i]
+        sent.append(w)
+      sents.append(''.join(sent))
+    return sents
 
   def expand_feed_dict(self, feed_dict):
     """If the key is a tuple of placeholders,

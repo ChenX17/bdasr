@@ -123,7 +123,7 @@ class BD_TransformerModel(BaseModel):
     encoder_attention_bias = layers_with_attention.attention_bias_ignore_padding(encoder_padding)
 
     decoder_output = embedding(decoder_input,
-                   vocab_size=self._config.dst_vocab_size,
+                   vocab_size=self._config.vocab_size,
                    dense_size=self._config.hidden_units,
                    multiplier=self._config.hidden_units ** 0.5 if self._config.scale_embedding else 1.0,
                    name="dst_embedding")
@@ -204,7 +204,7 @@ class BD_TransformerModel(BaseModel):
     encoder_attention_bias = layers_with_attention.attention_bias_ignore_padding(encoder_padding)
     decoder_self_attention_bias = layers_with_attention.attention_bias_lower_triangle(tf.shape(decoder_input)[1])
     decoder_output = embedding(decoder_input,
-                   vocab_size=self._config.dst_vocab_size,
+                   vocab_size=self._config.vocab_size,
                    dense_size=self._config.hidden_units,
                    multiplier=self._config.hidden_units ** 0.5 if self._config.scale_embedding else 1.0,
                    name="dst_embedding")
@@ -395,7 +395,7 @@ class BD_TransformerModel(BaseModel):
       if self._config.is_lsoftmax is None:
         self._config.is_lsoftmax = False
       if not self._config.is_lsoftmax:
-        logits = layers.dense(decoder_output, self._config.dst_vocab_size, use_bias=False,
+        logits = layers.dense(decoder_output, self._config.vocab_size, use_bias=False,
                  name="dst_embedding" if self._config.tie_embedding_and_softmax else "softmax",
                  reuse=True if self._config.tie_embedding_and_softmax else None)
       else:
@@ -407,10 +407,10 @@ class BD_TransformerModel(BaseModel):
           Y_tmp = tf.reshape(Y, [-1])
           with tf.variable_scope(tf.get_variable_scope(),
                        reuse=True if self._config.tie_embedding_and_softmax else None):
-            weights = tf.get_variable("kernel", [self._config.dst_vocab_size, input_size])
+            weights = tf.get_variable("kernel", [self._config.vocab_size, input_size])
             weights = tf.transpose(weights)
             logits = lsoftmax(decoder_output_tmp, weights, Y_tmp)
-            logits = tf.reshape(logits, inputs_shape[:-1] + [self._config.dst_vocab_size])
+            logits = tf.reshape(logits, inputs_shape[:-1] + [self._config.vocab_size])
 
       preds = tf.to_int32(tf.argmax(logits, axis=-1))
       l2r_preds = preds[0]
@@ -424,10 +424,10 @@ class BD_TransformerModel(BaseModel):
       acc = (l2r_acc + r2l_acc)/2
       # Smoothed loss
       l2r_loss = layers.smoothing_cross_entropy(logits=logits[0], labels=Y[0],
-                             vocab_size=self._config.dst_vocab_size,
+                             vocab_size=self._config.vocab_size,
                              confidence=1 - self._config.train.label_smoothing)
       r2l_loss = layers.smoothing_cross_entropy(logits=logits[1], labels=Y[1],
-                             vocab_size=self._config.dst_vocab_size,
+                             vocab_size=self._config.vocab_size,
                              confidence=1 - self._config.train.label_smoothing)
       mean_l2r_loss = tf.reduce_sum(l2r_loss*mask_l2r) / (tf.reduce_sum(mask_l2r))
       mean_r2l_loss = tf.reduce_sum(r2l_loss*mask_r2l) / (tf.reduce_sum(mask_r2l))
@@ -583,9 +583,9 @@ class BD_TransformerModel(BaseModel):
 
       topk_scores = tf.reshape(topk_scores, [-1, 2*beam_size]) ## add;
       #topk_beam_index is the beam index of topk
-      topk_beam_index = topk_ids // self._config.dst_vocab_size ## like [[0,1,1,0],[1,1,0,0],[1,0,0,0],...], e.g. beam=2
+      topk_beam_index = topk_ids // self._config.vocab_size ## like [[0,1,1,0],[1,1,0,0],[1,0,0,0],...], e.g. beam=2
       #topk_ids is the class label of topk
-      topk_ids %= self._config.dst_vocab_size  # Unflatten the ids
+      topk_ids %= self._config.vocab_size  # Unflatten the ids
       #[bacth, 2, beam]
       ##add;
       topk_beam_index_1 = tf.concat([tf.expand_dims(topk_beam_index[:,0,:],1), tf.expand_dims(topk_beam_index[:,1,:]+tf.cast(beam_size/2,tf.int32),1)], axis=1)
@@ -688,7 +688,7 @@ class BD_TransformerModel(BaseModel):
   def test_output(self, decoder_output, reuse, decoder_scope):
     """During test, we only need the last prediction at each time."""
     with tf.variable_scope(decoder_scope, reuse=reuse):
-      last_logits = layers.dense(decoder_output[:, -1], self._config.dst_vocab_size, use_bias=False,
+      last_logits = layers.dense(decoder_output[:, -1], self._config.vocab_size, use_bias=False,
                 name="dst_embedding" if self._config.tie_embedding_and_softmax else "softmax",
                 reuse=True if self._config.tie_embedding_and_softmax else None)
     return last_logits

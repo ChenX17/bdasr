@@ -413,7 +413,7 @@ class BaseModel(object):
   def test_output(self, decoder_output, reuse, decoder_scope):
     """During test, we only need the last prediction at each time."""
     with tf.variable_scope(decoder_scope, reuse=reuse):
-      last_logits = layers.dense(decoder_output[:, -1], self._config.dst_vocab_size, use_bias=False,
+      last_logits = layers.dense(decoder_output[:, -1], self._config.vocab_size, use_bias=False,
                 name="dst_embedding" if self._config.tie_embedding_and_softmax else "softmax",
                 reuse=True if self._config.tie_embedding_and_softmax else None)
       last_preds = tf.to_int32(tf.argmax(last_logits, axis=-1))
@@ -425,11 +425,11 @@ class BaseModel(object):
   def test_loss(self, decoder_output, Y, reuse, decoder_scope):
     """This function help users to compute PPL during test."""
     with tf.variable_scope(decoder_scope, reuse=reuse):
-      logits = layers.dense(decoder_output, self._config.dst_vocab_size, use_bias=False,
+      logits = layers.dense(decoder_output, self._config.vocab_size, use_bias=False,
                name="dst_embedding" if self._config.tie_embedding_and_softmax else "softmax",
                reuse=True if self._config.tie_embedding_and_softmax else None)
       mask = tf.to_float(tf.not_equal(Y, 0))
-      labels = tf.one_hot(Y, depth=self._config.dst_vocab_size)
+      labels = tf.one_hot(Y, depth=self._config.vocab_size)
       loss = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels)
       loss_sum = tf.reduce_sum(loss * mask)
     return loss_sum
@@ -440,7 +440,7 @@ class BaseModel(object):
       if self._config.is_lsoftmax is None:
         self._config.is_lsoftmax = False
       if not self._config.is_lsoftmax:
-        logits = layers.dense(decoder_output, self._config.dst_vocab_size, use_bias=False,
+        logits = layers.dense(decoder_output, self._config.vocab_size, use_bias=False,
                  name="dst_embedding" if self._config.tie_embedding_and_softmax else "softmax",
                  reuse=True if self._config.tie_embedding_and_softmax else None)
       else:
@@ -452,10 +452,10 @@ class BaseModel(object):
           Y_tmp = tf.reshape(Y, [-1])
           with tf.variable_scope(tf.get_variable_scope(),
                        reuse=True if self._config.tie_embedding_and_softmax else None):
-            weights = tf.get_variable("kernel", [self._config.dst_vocab_size, input_size])
+            weights = tf.get_variable("kernel", [self._config.vocab_size, input_size])
             weights = tf.transpose(weights)
             logits = lsoftmax(decoder_output_tmp, weights, Y_tmp)
-            logits = tf.reshape(logits, inputs_shape[:-1] + [self._config.dst_vocab_size])
+            logits = tf.reshape(logits, inputs_shape[:-1] + [self._config.vocab_size])
 
       preds = tf.to_int32(tf.argmax(logits, axis=-1))
       mask = tf.to_float(tf.not_equal(Y, 0))
@@ -463,7 +463,7 @@ class BaseModel(object):
 
       # Smoothed loss
       loss = layers.smoothing_cross_entropy(logits=logits, labels=Y,
-                             vocab_size=self._config.dst_vocab_size,
+                             vocab_size=self._config.vocab_size,
                              confidence=1 - self._config.train.label_smoothing)
       mean_loss = tf.reduce_sum(loss * mask) / (tf.reduce_sum(mask))
 

@@ -40,6 +40,8 @@ def train(config):
   print('model is :', config.model)
   if 'BD' in config.model:
     data_reader = BDDataLoader(config=config)
+  elif config.is_reverse:
+    data_reader = REDataLoader(config=config)
     # old_data_reader = data_loader_bd.DataReader(config=config)
   else:
     data_reader = DataLoader(config=config)
@@ -116,6 +118,8 @@ def train(config):
         # Train normal instances.
         start_time = time.time()
         step, lr, loss = train_one_step(batch)
+        if step > 1550:
+          break
         logger.info(
             'epoch: %d\tstep: %d\tlr: %.6f\tloss: %.4f'
             '\ttime: %.4f\tbatch_size: %d' %

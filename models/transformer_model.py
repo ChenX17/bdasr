@@ -87,7 +87,7 @@ class TransformerModel(BaseModel):
     encoder_attention_bias = layers_with_attention.attention_bias_ignore_padding(encoder_padding)
 
     decoder_output = embedding(decoder_input,
-                   vocab_size=self._config.dst_vocab_size,
+                   vocab_size=self._config.vocab_size,
                    dense_size=self._config.hidden_units,
                    multiplier=self._config.hidden_units ** 0.5 if self._config.scale_embedding else 1.0,
                    name="dst_embedding")
@@ -155,7 +155,7 @@ class TransformerModel(BaseModel):
     encoder_attention_bias = layers_with_attention.attention_bias_ignore_padding(encoder_padding)
 
     decoder_output = embedding(decoder_input,
-                   vocab_size=self._config.dst_vocab_size,
+                   vocab_size=self._config.vocab_size,
                    dense_size=self._config.hidden_units,
                    multiplier=self._config.hidden_units ** 0.5 if self._config.scale_embedding else 1.0,
                    name="dst_embedding")

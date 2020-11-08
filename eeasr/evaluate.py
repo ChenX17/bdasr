@@ -12,12 +12,10 @@ from argparse import ArgumentParser
 from tempfile import mkstemp
 from tensorflow.python import debug as tf_debug
 
-from eeasr.core import utils
-from eeasr.models.base_model import BaseModel
-from eeasr.models.transformer_model import TransformerModel
-from eeasr.models.attention_ctc_joint_model import AttentCTCModel
-from eeasr.models.transformer_gnn_model import GNNTransformerModel
-import eeasr.dataloader.test_data_loader
+from core import utils
+from dataloader.base_dataloader import DataLoader
+from models.base_model import BaseModel
+from models.transformer_model import TransformerModel
 
 is_debug = False
 class Evaluator(object):
@@ -47,7 +45,7 @@ class Evaluator(object):
       logging.info('Reload model in %s.' % config.model_dir)
       self.model.saver.restore(self.sess,
           tf.train.latest_checkpoint(config.model_dir))
-    self.data_reader = eeasr.dataloader.test_data_loader.DataReader(config)
+    self.data_reader = DataLoader(config)
 
   def init_from_existed(self, model, sess, data_reader):
     assert model.graph == sess.graph
@@ -57,12 +55,12 @@ class Evaluator(object):
 
   def beam_search(self, X):
     return self.sess.run(self.model.prediction,
-               feed_dict=eeasr.dataloader.test_data_loader.expand_feed_dict(
+               feed_dict=DataLoader.expand_feed_dict(
                {self.model.src_pls: X}))
 
   def loss(self, X, Y):
     return self.sess.run(self.model.loss_sum,
-               feed_dict=eeasr.dataloader.test_data_loader.expand_feed_dict(
+               feed_dict=DataLoader.expand_feed_dict(
                {self.model.src_pls: X, self.model.dst_pls: Y}))
 
   def translate(self, src_path, output_path, batch_size):
@@ -139,7 +137,7 @@ if __name__ == '__main__':
   # Read config
   if not args.config:
     args.config = './config_template_pinyin.yaml'
-  config = eeasr.dataloader.test_data_loader.AttrDict(
+  config = utils.AttrDict(
           yaml.load(open(args.config)))
   # Logger
   logging.basicConfig(level=logging.INFO)

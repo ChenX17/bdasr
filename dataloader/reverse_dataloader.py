@@ -3,9 +3,27 @@
 '''
 Date: 2020-10-29 20:43:54
 LastEditors: Xi Chen(chenxi50@lenovo.com)
-LastEditTime: 2020-10-29 21:08:24
+LastEditTime: 2020-11-07 20:39:25
 '''
+
+import random
+import logging
+import kaldi_io
+import numpy as np
+import six.moves.queue as queue
+import codecs
+import glob
+
 from base_dataloader import DataLoader
+import data_augmentation
+
+PAD_INDEX = 0
+UNK_INDEX = 1
+EOS_INDEX = 3
+
+PAD = u'<PAD>'
+UNK = u'<UNK>'
+EOS = u'</S>'
 
 class REDataLoader(DataLoader):
     def __init__(self, config):
@@ -17,12 +35,12 @@ class REDataLoader(DataLoader):
         for sent in sents:
             x = []
 
-        for word in (sent + [EOS]):
-            x_tmp = phone2idx.get(word, UNK_INDEX)
-            x.append(x_tmp)
-            if x_tmp == UNK_INDEX and word != UNK:
-                logging.warn('=========[ZSY]x_tmp=UNK_INDEX, word=' + str(word.encode('UTF-8')))
-        indices.append(x)
+            for word in (sent + [EOS]):
+                x_tmp = phone2idx.get(word, UNK_INDEX)
+                x.append(x_tmp)
+                if x_tmp == UNK_INDEX and word != UNK:
+                    logging.warn('=========[ZSY]x_tmp=UNK_INDEX, word=' + str(word.encode('UTF-8')))
+            indices.append(x)
 
         # Pad to the same length.
         batch_size = len(sents)
@@ -33,4 +51,4 @@ class REDataLoader(DataLoader):
         for i, x in enumerate(indices):
             target_batch[i, :len(x)] = x[:-1][::-1]+[3]
             target_batch_mask[i, :len(x)] = 0
-        return target_batch, target_batch_mask
+        return target_batch

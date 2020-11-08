@@ -16,6 +16,7 @@ from tensorflow.python import debug as tf_debug
 from core import utils
 from models.base_model import BaseModel
 from models.transformer_model import TransformerModel
+from dataloader.base_dataloader import DataLoader
 import dataloader.test_data_loader
 from models.bd_transformer_model import BD_TransformerModel
 is_debug = False #False
@@ -46,7 +47,7 @@ class Evaluator(object):
       logging.info('Reload model in %s.' % config.model_dir)
       self.model.saver.restore(self.sess,
           tf.train.latest_checkpoint(config.model_dir))
-    self.data_reader = eeasr.dataloader.test_data_loader.DataReader(config)
+    self.data_reader = DataLoader(config)
     self.config = config
 
   def init_from_existed(self, config, model, sess):
@@ -54,20 +55,20 @@ class Evaluator(object):
     self.config = config
     self.sess = sess
     self.model = model
-    self.data_reader = eeasr.dataloader.test_data_loader.DataReader(self.config)
+    self.data_reader = DataLoader(self.config)
 
   def beam_search(self, X):
     if 'BD' in self.config.model:
       return self.sess.run([self.model.prediction, self.model.scores, self.model.alive_probs, self.model.finished_flags],
-                feed_dict=eeasr.dataloader.test_data_loader.expand_feed_dict(
+                feed_dict=self.data_reader.expand_feed_dict(
                 {self.model.src_pls: X}))
     else:
       return self.sess.run(self.model.prediction,
-      feed_dict=eeasr.dataloader.test_data_loader.expand_feed_dict({self.model.src_pls: X}))
+      feed_dict=self.data_reader.expand_feed_dict({self.model.src_pls: X}))
 
   def loss(self, X, Y):
     return self.sess.run(self.model.loss_sum,
-               feed_dict=eeasr.dataloader.test_data_loader.expand_feed_dict(
+               feed_dict=self.data_reader.expand_feed_dict(
                {self.model.src_pls: X, self.model.dst_pls: Y}))
 
   def post_process(self, Y):
