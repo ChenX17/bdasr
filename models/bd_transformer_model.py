@@ -338,11 +338,7 @@ class BD_TransformerModel(BaseModel):
             if self._config.train.var_filter:
               var_list = [v for v in var_list if
                   re.match(self._config.train.var_filter, v.name)]
-            #l2_loss_list = []
-            #for i in var_list:
-            #  l2_loss_list.append(self.l2_weight * tf.nn.l2_loss(i))
-            #l2_loss = tf.reduce_sum(l2_loss_list)
-            #loss += l2_loss
+            
             acc_list.append(acc)
             loss_list.append(loss)
             l2r_loss_list.append(l2r_loss)
@@ -376,7 +372,6 @@ class BD_TransformerModel(BaseModel):
       tf.summary.scalar('loss', self.loss)
       tf.summary.scalar('l2r_loss', self.l2r_loss)
       tf.summary.scalar('r2l_loss', self.r2l_loss)
-      #tf.summary.scalar('l2_loss', l2_loss)
       tf.summary.scalar('learning_rate', self.learning_rate)
       tf.summary.scalar('grads_norm', self.grads_norm)
       tf.summary.scalar('avg_abs_grads', avg_abs_grads)
@@ -420,7 +415,6 @@ class BD_TransformerModel(BaseModel):
       mask_r2l = tf.to_float(tf.not_equal(Y[1], 0))
       l2r_acc = tf.reduce_sum(tf.to_float(tf.equal(l2r_preds, Y[0])) * mask_l2r) / tf.reduce_sum(mask_l2r)
       r2l_acc = tf.reduce_sum(tf.to_float(tf.equal(r2l_preds, Y[1])) * mask_r2l) / tf.reduce_sum(mask_r2l)
-      #acc = tf.reduce_sum(tf.to_float(tf.equal(preds, Y)) * mask) / tf.reduce_sum(mask)
       acc = (l2r_acc + r2l_acc)/2
       # Smoothed loss
       l2r_loss = layers.smoothing_cross_entropy(logits=logits[0], labels=Y[0],
@@ -451,22 +445,18 @@ class BD_TransformerModel(BaseModel):
         with tf.device(device):
           logging.info('Build model on %s.' % device)
           dec_input = utils.shift(Y)
-          #dec_input = Y
-
+      
           # Avoid errors caused by empty input by a condition phrase.
           def true_fn():
             enc_output = self.encoder(X, is_training=False,
                 reuse=i > 0 or None, encoder_scope=self.encoder_scope)
             prediction, scores, alive_probs, finished_flags = self.beam_search(enc_output, vocab_size=self._config.vocab_size, reuse=i > 0 or None)
-            #dec_output = self.decoder(dec_input, enc_output, is_training=False,
-                #reuse=True, decoder_scope=self.decoder_scope)
-            #loss = self.test_loss(dec_output, Y, reuse=True,
-                #decoder_scope=self.decoder_scope)
+            
             return prediction, scores, alive_probs, finished_flags
 
           def false_fn():
             return tf.zeros([0, 0], dtype=tf.int32), tf.zeros([0, 0], dtype=tf.float32), tf.zeros([0, 0], dtype=tf.float32), tf.zeros([0, 0], dtype=tf.bool)
-            #return tf.zeros([0, 0, 0], dtype=tf.int32)
+
 
           prediction, scores, alive_probs, finished_flags = tf.cond(tf.greater(tf.shape(X)[0], 0),
                                       true_fn, false_fn)
@@ -492,7 +482,6 @@ class BD_TransformerModel(BaseModel):
       self.scores = tf.concat(scores_list, axis=0)
       self.alive_probs = tf.concat(alive_probs_list, axis=0)
       self.finished_flags = tf.concat(finished_flags_list, axis=0)
-      #self.prediction = prediction_list
       self.atten_probs = atten_probs_list
       self.loss_sum = loss_sum
 
