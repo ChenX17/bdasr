@@ -6,18 +6,19 @@ import re
 import tensorflow as tf
 from tensorflow.python.ops import init_ops
 from tensorflow.python.util import nest
-from eeasr import model_registry
-from eeasr.core import layers
-from eeasr.core import layers_with_attention
-from eeasr.core import utils
-from eeasr.core.layers import embedding, residual, dense, ff_hidden
-from eeasr.core.layers_with_attention import multihead_attention
-from eeasr.core.layers_with_attention import sb_multihead_attention_for_decoding
-from eeasr.core.layers_with_attention import sb_multihead_attention
-from eeasr.core.utils import average_gradients, shift_right
-from eeasr.core.utils import learning_rate_decay
-from eeasr.models.base_model import BaseModel
+import model_registry
+from core import layers
+from core import layers_with_attention
+from core import utils
+from core.layers import embedding, residual, dense, ff_hidden
+from core.layers_with_attention import multihead_attention
+from core.layers_with_attention import sb_multihead_attention_for_decoding
+from core.layers_with_attention import sb_multihead_attention
+from core.utils import average_gradients, shift_right
+from core.utils import learning_rate_decay
+from models.base_model import BaseModel
 import copy
+
 @model_registry.RegisterSingleTaskModel
 class BD_TransformerModel(BaseModel):
   """Model for transformer architecture."""
@@ -26,11 +27,6 @@ class BD_TransformerModel(BaseModel):
     super(BD_TransformerModel, self).__init__(config, num_gpus, *args, **kargs)
     self.graph = tf.Graph()
     self._config = config
-    # global is_attention_smoothing
-    # is_attention_smoothing = self._config.is_attention_smoothing
-    # logging.info('[ZSY_INFO]is_attention_smoothing='
-    #     + str(is_attention_smoothing))
-    # logging.info('[ZSY_INFO]is_lsoftmax=' + str(self._config.is_lsoftmax))
     self._devices = ['/gpu:%d' % i for i in
         range(num_gpus)] if num_gpus > 0 else ['/cpu:0']
 
@@ -136,7 +132,6 @@ class BD_TransformerModel(BaseModel):
     decoder_output = tf.layers.dropout(decoder_output,
                        rate=residual_dropout_rate,
                        training=is_training)
-    # Bias for preventing peeping later information
     # Bias for preventing peeping later information for bidirectional decoder
     self_attention_bias = layers_with_attention.attention_bias_lower_triangle(tf.shape(decoder_input)[2])
 
@@ -522,7 +517,6 @@ class BD_TransformerModel(BaseModel):
 
     flat_curr_scores = tf.zeros(shape_list(alive_seq), tf.float32)
     # [batch, beam, 1] show the sentences decodered
-    #finished_seq = tf.ones(shape_list(alive_seq), tf.int32)*3
     finished_seq_1 = tf.tile(tf.expand_dims(initial_ids_1, 1), [1, tf.cast(beam_size/2, tf.int32), 1])
     finished_seq_2 = tf.tile(tf.expand_dims(initial_ids_2, 1), [1, tf.cast(beam_size/2, tf.int32), 1])
     finished_seq = tf.concat([finished_seq_1, finished_seq_2], axis=1)
@@ -576,7 +570,6 @@ class BD_TransformerModel(BaseModel):
       #topk_ids is the class label of topk
       topk_ids %= self._config.vocab_size  # Unflatten the ids
       #[bacth, 2, beam]
-      ##add;
       topk_beam_index_1 = tf.concat([tf.expand_dims(topk_beam_index[:,0,:],1), tf.expand_dims(topk_beam_index[:,1,:]+tf.cast(beam_size/2,tf.int32),1)], axis=1)
       topk_beam_index = tf.reshape(topk_beam_index_1, [-1, beam_size*2])
       topk_ids = tf.reshape(topk_ids, [-1, beam_size*2])
@@ -610,7 +603,6 @@ class BD_TransformerModel(BaseModel):
                                            lambda t: tf.gather_nd(t, top_coordinates), cache)
     
       # 3. Recompute the contents of finished based on scores.
-
       finished_seq = tf.concat([finished_seq,tf.ones([batch_size, beam_size, 1], tf.int32)*3], axis=2)
       curr_scores = topk_scores + (1. - tf.to_float(topk_finished)) * -inf
       curr_finished_seq = tf.concat([finished_seq, topk_seq], axis=1)
@@ -670,7 +662,6 @@ class BD_TransformerModel(BaseModel):
     finished_scores = tf.where(
       tf.reduce_any(finished_flags, 1), finished_scores, alive_log_probs)
     
-
     final_seq = finished_seq[:,0,:]
     return final_seq, finished_scores, alive_log_probs, finished_flags
 

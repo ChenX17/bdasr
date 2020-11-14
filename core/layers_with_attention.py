@@ -21,9 +21,9 @@ import math
 
 import tensorflow as tf
 
-from eeasr.core import layers
-from eeasr.core.layers import dense
-from eeasr.core import common_layers
+from core import layers
+from core.layers import dense
+from core import common_layers
 def add_timing_signal_1d(x, min_timescale=1.0, max_timescale=1.0e5):
   """Adds a bunch of sinusoids of different frequencies to a Tensor.
   

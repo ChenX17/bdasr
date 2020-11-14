@@ -7,7 +7,7 @@ import math
 import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
 #from utils import parallel
-from eeasr.core import parallel
+from core import parallel
 import tensorflow as tf
 from tensorflow.python.framework import function
 

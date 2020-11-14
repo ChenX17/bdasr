@@ -11,14 +11,12 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from eeasr import model_registry
+import model_registry
 from evaluate import Evaluator
 from core import utils
 from dataloader.base_dataloader import DataLoader
 from dataloader.bd_dataloader import BDDataLoader
 from dataloader.reverse_dataloader import REDataLoader
-from dataloader import data_loader_bd as data_loader_bd
-from dataloader import data_loader_read_from_scp as data_loader
 from models.base_model import BaseModel
 from models.transformer_model import TransformerModel
 from models.bd_transformer_model import BD_TransformerModel
@@ -118,8 +116,6 @@ def train(config):
         # Train normal instances.
         start_time = time.time()
         step, lr, loss = train_one_step(batch)
-        if step > 1550:
-          break
         logger.info(
             'epoch: %d\tstep: %d\tlr: %.6f\tloss: %.4f'
             '\ttime: %.4f\tbatch_size: %d' %

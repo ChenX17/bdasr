@@ -6,14 +6,14 @@ import re
 import tensorflow as tf
 from tensorflow.python.ops import init_ops
 
-from eeasr import model_registry
-from eeasr.core import layers
-from eeasr.core import layers_with_attention
-from eeasr.core.layers import embedding, residual, dense, ff_hidden
-from eeasr.core.layers_with_attention import multihead_attention
-from eeasr.core.utils import average_gradients, shift_right
-from eeasr.core.utils import learning_rate_decay
-from eeasr.models.base_model import BaseModel
+import model_registry
+from core import layers
+from core import layers_with_attention
+from core.layers import embedding, residual, dense, ff_hidden
+from core.layers_with_attention import multihead_attention
+from core.utils import average_gradients, shift_right
+from core.utils import learning_rate_decay
+from models.base_model import BaseModel
 
 @model_registry.RegisterSingleTaskModel
 class TransformerModel(BaseModel):

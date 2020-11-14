@@ -17,7 +17,6 @@ from core import utils
 from models.base_model import BaseModel
 from models.transformer_model import TransformerModel
 from dataloader.base_dataloader import DataLoader
-import dataloader.test_data_loader
 from models.bd_transformer_model import BD_TransformerModel
 is_debug = False #False
 class Evaluator(object):

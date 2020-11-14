@@ -6,10 +6,10 @@ import re
 import tensorflow as tf
 from tensorflow.python.ops import init_ops
 
-from eeasr import model_registry
-from eeasr.core import layers
-from eeasr.core import lsoftmax
-from eeasr.core import utils
+import model_registry
+from core import layers
+from core import lsoftmax
+from core import utils
 
 @model_registry.RegisterSingleTaskModel
 class BaseModel(object):

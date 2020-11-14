@@ -6,6 +6,8 @@ import numpy as np
 import six.moves.queue as queue
 import codecs
 import glob
+import os
+import tensorflow as tf
 
 from base_dataloader import DataLoader
 import data_augmentation
@@ -72,10 +74,10 @@ class BDDataLoader(DataLoader):
             scp = f.readlines()
             f.close()
 
-        if index == 0:
-            total_scp = scp
-        else:
-            total_scp += scp
+            if index == 0:
+                total_scp = scp
+            else:
+                total_scp += scp
 
         if shuffle:
             random.shuffle(total_scp)

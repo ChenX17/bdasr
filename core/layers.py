@@ -24,7 +24,7 @@ import tensorflow as tf
 from six.moves import xrange  # pylint: disable=redefined-builtin
 from tensorflow.python.framework import function
 
-from eeasr.core import expert_utils as eu
+from core import expert_utils as eu
 
 # This is a global setting. When turned off, no @function.Defun is used.
 allow_defun = True
