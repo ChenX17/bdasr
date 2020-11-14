@@ -90,7 +90,6 @@ def bd_add_timing_signal_1d(x, min_timescale=1.0, max_timescale=1.0e5):
   signal = tf.concat([tf.sin(scaled_time), tf.cos(scaled_time)], axis=1)
   signal = tf.pad(signal, [[0, 0], [0, tf.mod(channels, 2)]])
   signal = tf.reshape(signal, [1, 1, length, channels])
-  #signal = tf.concat([signal, signal],axis=0)
   return x + signal
 
 def add_timing_signal_nd(x, min_timescale=1.0, max_timescale=1.0e4):
@@ -389,124 +388,6 @@ def dot_product_attention(q,
       #attention_image_summary(weights, image_shapes)
     return tf.matmul(weights, v)
 
-def latentgnn_attention(q,
-              k,
-              v,
-              encoder_bias,
-              decoder_bias,
-              dropout_rate=0.0,
-              summaries=False,
-              image_shapes=None,
-              latent_k_dim=10,
-              latent_v_dim=10,
-              name=None):
-  """latent_gnn attention.
-
-  Args:
-    q: a Tensor with shape [batch, heads, length_q, depth_k]
-    k: a Tensor with shape [batch, heads, length_kv, depth_k]
-    v: a Tensor with shape [batch, heads, length_kv, depth_v]
-    bias: bias Tensor (see attention_bias())
-    dropout_rate: a floating point number
-    summaries: a boolean
-    image_shapes: optional quadruple of integer scalars for image summary.
-    If the query positions and memory positions represent the
-    pixels of a flattened image, then pass in their dimensions:
-      (query_rows, query_cols, memory_rows, memory_cols).
-    name: an optional string
-
-  Returns:
-    A Tensor.
-  """
-  with tf.variable_scope(
-      name, default_name="dot_product_attention", values=[q, k, v]):
-    # [batch, num_heads, query_length, memory_length]
-    # ----------------------------------
-    # Generated projection matrix
-    # ----------------------------------
-    # generate projection matrix for q
-    # (B, heads, length_q, laten_q_dim)
-    q_proj_matrix = tf.layers.conv2d(
-            q, latent_k_dim, (1,1),
-            name="q_proj_generate"
-        )
-    # (B, heads, laten_q_dim, length_q)
-    q_proj_matrix = tf.nn.l2_normalize(q_proj_matrix, axis=-1)
-    # (B, heads, laten_q_dim, length_q)
-    q_proj_matrix = tf.transpose(q_proj_matrix, perm=[0, 1, 3, 2])
-    # (B, heads, length_k, laten_k_dim)
-    k_proj_matrix = tf.layers.conv2d(
-            k, latent_k_dim, (1,1),
-            name="k_proj_generate"
-        )
-    # (B, heads, laten_k_dim, length_k)
-    k_proj_matrix = tf.nn.l2_normalize(k_proj_matrix, axis=-1)
-    # (B, heads, laten_k_dim, length_k)
-    k_proj_matrix = tf.transpose(k_proj_matrix, perm=[0, 1, 3, 2])
-    if decoder_bias is not None and encoder_bias is not None:
-        q_proj_matrix = q_proj_matrix + encoder_bias
-        k_proj_matrix = k_proj_matrix + encoder_bias
-    if decoder_bias is None and encoder_bias is not None:
-        k_proj_matrix = k_proj_matrix + encoder_bias
-    #q_proj_matrix = tf.nn.softmax(q_proj_matrix, axis=-1)
-    #k_proj_matrix = tf.nn.softmax(k_proj_matrix, axis=-1)
-    v_proj_matrix = tf.layers.conv2d(
-            v, latent_v_dim, (1,1),
-            name="v_proj_generate"
-        )
-    v_proj_matrix = tf.nn.l2_normalize(v_proj_matrix, axis=-1)
-    #v_proj_matrix = tf.nn.softmax(v_proj_matrix, axis=2)
-    v_proj_matrix = tf.transpose(v_proj_matrix, perm=[0, 1, 3, 2])
-    # ----------------------------------
-    # Step-1: Project the feature into latent space
-    # ----------------------------------
-    # (B, heads, laten_q_dim, channel_q)
-    latent_q_feat = tf.matmul(q_proj_matrix, q)
-    latent_q_feat = tf.nn.l2_normalize(latent_q_feat, dim=-1)
-    # (B, heads, laten_k_dim, channel_k) # channel_k = channel_q
-    latent_k_feat = tf.matmul(k_proj_matrix, k)
-    latent_k_feat = tf.nn.l2_normalize(latent_k_feat, dim=-1)
-    # (B, heads, laten_v_dim, channel_v)
-    latent_v_feat = tf.matmul(v_proj_matrix, v)
-    # ----------------------------------
-    # Step-2: Self-attention within latent space
-    # ----------------------------------
-    latent_attn_logits = tf.matmul(latent_q_feat, latent_k_feat, transpose_b=True)
-    # (B, heads, latent_q_dim, latent_k_dim)
-    latent_attn_score = tf.nn.softmax(latent_attn_logits, name='latent_attention_score')
-    #(B, heads, length_q, laten_q_dim) * (B, heads, latent_q_dim, channel_v)
-    #weights = tf.nn.dropout(latent_attn_score, 1.0 - dropout_rate)
-    update_latent_v = tf.matmul(latent_attn_score, latent_v_feat)
-    
-    # add feature transformation
-    channel_v = update_latent_v.get_shape().as_list()[3]
-    update_latent_v = tf.nn.relu(
-            tf.layers.conv2d(
-                update_latent_v, channel_v, (1,1),
-                name="latent_v_transformation"
-                ))
-    # ----------------------------------
-    # Step-3: Re-project latent space into visible space
-    # ----------------------------------
-    q_reproj_matrix = tf.nn.relu(
-            tf.layers.conv2d(
-                q, latent_k_dim, (1,1),
-                name="q_reproj_generate"
-                ))
-    q_reproj_matrix = tf.transpose(q_reproj_matrix, perm=[0, 1, 3, 2])
-    # (B, heads, latent_q, channel_v)
-    visible_out = tf.matmul(q_reproj_matrix, update_latent_v, transpose_a=True)
-    
-    channel_out = visible_out.get_shape().as_list()[3]
-    visible_out = tf.nn.relu(
-            tf.layers.conv2d(
-                visible_out, channel_out, (1,1),
-                name="visible_out_transformation"
-                ))
-    # Reshape
-    if summaries and not tf.get_variable_scope().reuse:
-      attention_image_summary(latent_attn_score, image_shapes)
-    return visible_out
 
 def dot_product_attention_with_atten_probs(q,
               k,
@@ -658,72 +539,6 @@ def multihead_attention(query_antecedent,
     x = dense(x, output_depth, name="output_transform")
     return x
 
-def multihead_attention_with_latentgnn(query_antecedent,
-                        memory_antecedent,
-                        encoder_bias,
-                        decoder_bias,
-                        total_key_depth,
-                        total_value_depth,
-                        output_depth,
-                        num_heads,
-                        dropout_rate,
-                        reserve_last=False,
-                        summaries=False,
-                        image_shapes=None,
-                        name=None,
-                        latent_k_dim=50,
-                        latent_v_dim=50):
-  """Multihead scaled-dot-product attention with input/output transformations.
-
-  Args:
-    query_antecedent: a Tensor with shape [batch, length_q, channels]
-    memory_antecedent: a Tensor with shape [batch, length_m, channels]
-    bias: bias Tensor (see attention_bias())
-    total_key_depth: an integer
-    total_value_depth: an integer
-    output_depth: an integer
-    num_heads: an integer dividing total_key_depth and total_value_depth
-    dropout_rate: a floating point number
-    reserve_last: a boolean
-    summaries: a boolean
-    image_shapes: optional quadruple of integer scalars for image summary.
-    If the query positions and memory positions represent the
-    pixels of a flattened image, then pass in their dimensions:
-      (query_rows, query_cols, memory_rows, memory_cols).
-  name: an optional string
-
-  Returns:
-    A Tensor.
-  """
-  with tf.variable_scope(
-      name,
-      default_name="multihead_attention_with_latentgnn",
-      values=[query_antecedent, memory_antecedent]):
-
-    if memory_antecedent is None:
-      # self attention
-      combined = dense(query_antecedent, total_key_depth * 2 + total_value_depth, name="qkv_transform")
-      q, k, v = tf.split(
-        combined, [total_key_depth, total_key_depth, total_value_depth],
-        axis=2)
-    else:
-      q = dense(query_antecedent, total_key_depth, name="q_transform")
-      combined = dense(memory_antecedent,total_key_depth + total_value_depth, name="kv_transform")
-      k, v = tf.split(combined, [total_key_depth, total_value_depth], axis=2)
-    if reserve_last:
-      q = q[:, -1:, :]
-
-    q = split_heads(q, num_heads)
-    k = split_heads(k, num_heads)
-    v = split_heads(v, num_heads)
-    key_depth_per_head = total_key_depth // num_heads
-    q *= key_depth_per_head ** -0.5
-    x = latentgnn_attention(
-      q, k, v, encoder_bias, decoder_bias, dropout_rate, summaries, image_shapes, latent_k_dim, latent_v_dim)
-    x = combine_heads(x)
-    x = x + query_antecedent
-    x = dense(x, output_depth, name="output_transform")
-    return x
 
 def multihead_attention_with_atten_probs(query_antecedent,
                         memory_antecedent,
@@ -810,51 +625,10 @@ def sb_dot_product_attention_for_decoding(q,
         if bias is not None:
             logits += bias
         weights = tf.nn.softmax(logits, name="attention_weights_l2r")
-        # dropping out the attention links for each of the heads
         weights = tf.nn.dropout(weights, 1.0 - dropout_rate)
-        #if summaries and not tf.get_variable_scope().reuse:
-        #    attention_image_summary(weights, image_shapes)
-        final_l2r = tf.matmul(weights, v) ## [batch*beam, num_heads, length_tmp, hidden_size/num_heads]
-
-        ## calculate final_r2l
-        #shape = shape_list(k)
-        # k = tf.Print(k, [k, k.shape,'test'], message="K is: ")
-        # k=tf.Print(k,[k,k.shape,'test', k],message='Debug message:',summarize=2)
-        #new_shape = [batch_size]+[2]+[tf.cast(beam_size/2,tf.int32)]+shape[1:]
-        #k_ = tf.reshape(k, new_shape) ## [batch, 2, beam/2, num_heads, length_tmp, hidden_size/num_heads]
-        #k_ = tf.reverse(k_,[1])
-        #v_ = tf.reshape(v, new_shape)
-        #v_ = tf.reverse(v_,[1])
-        '''
-        #for all l2r to attend first best r2l beam
-        k_1 = k_[:, 0, 0,:, :, :]
-        k_2 = k_[:, 1, 0,:, :, :]
-        k_1 = tf.tile(tf.expand_dims(tf.expand_dims(k_1,1),1),[1, 1, tf.cast(beam_size/2, tf.int32), 1, 1, 1])
-        k_2 = tf.tile(tf.expand_dims(tf.expand_dims(k_2,1),1),[1, 1, tf.cast(beam_size/2, tf.int32), 1, 1, 1])
-        k_ = tf.concat([k_1,k_2], axis=1)
-        v_1 = v_[:, 0, 0,:, :, :]
-        v_2 = v_[:, 1, 0,:, :, :]
-        v_1 = tf.tile(tf.expand_dims(tf.expand_dims(v_1,1),1),[1, 1, tf.cast(beam_size/2, tf.int32), 1, 1, 1])
-        v_2 = tf.tile(tf.expand_dims(tf.expand_dims(v_2,1),1),[1, 1, tf.cast(beam_size/2, tf.int32), 1, 1, 1])
-        v_ = tf.concat([v_1,v_2], axis=1)
-        '''
-        #shape_ = shape_list(k_)
-        #new_shape_ = [batch_size*beam_size]+shape_[3:]
-        #k_ = tf.reshape(k_, new_shape_) ## [batch*beam, num_heads, length_tmp, hidden_size/num_heads]
-        #v_ = tf.reshape(v_, new_shape_)
+        bd_output = tf.matmul(weights, v) ## [batch*beam, num_heads, length_tmp, hidden_size/num_heads]
         
-        
-
-        #logits_ = tf.matmul(q, k_, transpose_b=True)
-        #logits_ += bias
-        #weights_ = tf.nn.softmax(logits_, name="attention_weights_r2l")
-        #weights_ = tf.nn.dropout(weights_, 1.0 - dropout_rate)
-        #final_r2l = tf.matmul(weights_, v_)
-
-        #lamda = tf.get_variable('lamda', shape=[1], initializer = tf.ones_initializer)
-        #final_all = final_l2r + lamda*tf.tanh(final_r2l)
-        #final_all = final_l2r + 0*final_r2l ## [batch*beam, num_heads, length_tmp, hidden_size/num_heads]
-        return final_l2r
+        return bd_output
 
 def sb_dot_product_attention(q,
                           k,
@@ -875,21 +649,9 @@ def sb_dot_product_attention(q,
         logits += bias
         weights = tf.nn.softmax(logits, name="attention_weights_l2r")
         weights = tf.nn.dropout(weights, 1.0 - dropout_rate)
-        #if summaries and not tf.get_variable_scope().reuse:
-        #    attention_image_summary(weights[0], image_shapes)
-        final_l2r = tf.matmul(weights, v) ## [2, batch, num_heads, length, hidden_size/num_heads]
+        bd_output = tf.matmul(weights, v) ## [2, batch, num_heads, length, hidden_size/num_heads]
 
-        ## calculate final_r2l
-        #k_ = tf.reverse(k, [0])
-        #v_ = tf.reverse(v, [0])
-        #logits_ = tf.matmul(q, k_, transpose_b=True)
-        #logits_ += bias ### modify err, logits --> logits_
-        #weights_ = tf.nn.softmax(logits_, name="attention_weights_r2l")
-        #weights_ = tf.nn.dropout(weights_, 1.0 - dropout_rate)
-        #final_r2l = tf.matmul(weights_, v_)
-        #final_all = final_l2r + 0*tf.nn.dropout(final_r2l, 1)
-        #final_all = final_l2r + 0.1*tf.tanh(tf.nn.dropout(final_r2l, 1-0.3))
-        return final_l2r ## [2, batch, num_heads, length, hidden_size/num_heads]
+        return bd_output ## [2, batch, num_heads, length, hidden_size/num_heads]
 
 def sb_multihead_attention(query_antecedent,
                            memory_antecedent,

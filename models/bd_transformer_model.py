@@ -69,7 +69,6 @@ class BD_TransformerModel(BaseModel):
     encoder_padding = tf.equal(tf.reduce_sum(tf.abs(encoder_input), axis=-1), 0.0)
     encoder_output = dense(encoder_input, self._config.hidden_units, activation=tf.identity,
                  use_bias=True, name="src_change")
-    #encoder_output = tf.contrib.layers.layer_norm(encoder_output, center=True, scale=True, trainable=True)
     encoder_output = layers.layer_norm(encoder_output)
 
     # Add positional signal
@@ -110,7 +109,7 @@ class BD_TransformerModel(BaseModel):
     return encoder_output
 
   def decoder_impl(self, decoder_input, encoder_output, is_training, cache=None):
-    # decoder_input: [batch_size, step]
+    # decoder_input: [2, batch_size, step]
     # encoder_output: [batch_size, time_step, hidden_units]
     attention_dropout_rate = self._config.attention_dropout_rate if is_training else 0.0
     residual_dropout_rate = self._config.residual_dropout_rate if is_training else 0.0
@@ -124,7 +123,6 @@ class BD_TransformerModel(BaseModel):
                    multiplier=self._config.hidden_units ** 0.5 if self._config.scale_embedding else 1.0,
                    name="dst_embedding")
     # Positional Encoding
-    #decoder_output = layers_with_attention.bd_add_timing_signal_1d(decoder_output)
     decoder_output = tf.concat(
       [tf.expand_dims(layers_with_attention.add_timing_signal_1d(decoder_output[0]), 0),
       tf.expand_dims(layers_with_attention.add_timing_signal_1d(decoder_output[1]), 0)], 0)

@@ -37,7 +37,6 @@ class TransformerModel(BaseModel):
     encoder_padding = tf.equal(tf.reduce_sum(tf.abs(encoder_input), axis=-1), 0.0)
     encoder_output = dense(encoder_input, self._config.hidden_units, activation=tf.identity,
                  use_bias=True, name="src_change")
-    #encoder_output = tf.contrib.layers.layer_norm(encoder_output, center=True, scale=True, trainable=True)
     encoder_output = layers.layer_norm(encoder_output)
 
     # Add positional signal

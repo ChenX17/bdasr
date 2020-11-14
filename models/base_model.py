@@ -18,11 +18,6 @@ class BaseModel(object):
   def __init__(self, config, num_gpus):
     self.graph = tf.Graph()
     self._config = config
-    # global is_attention_smoothing
-    # is_attention_smoothing = self._config.is_attention_smoothing
-    # logging.info('[ZSY_INFO]is_attention_smoothing='
-    #     + str(is_attention_smoothing))
-    # logging.info('[ZSY_INFO]is_lsoftmax=' + str(self._config.is_lsoftmax))
     self._devices = ['/gpu:%d' % i for i in
         range(num_gpus)] if num_gpus > 0 else ['/cpu:0']
 
@@ -82,9 +77,6 @@ class BaseModel(object):
       self._initializer = init_ops.variance_scaling_initializer(
           scale=1.0, mode='fan_avg', distribution='uniform')
 
-      #self.l2_weight = self._config.train.l2_weight
-      #if not self.l2_weight:
-      #  self.l2_weight = 1e-6
 
   def build_train_model(self, test=True, reuse=None):
     """Build model for training. """
@@ -153,11 +145,6 @@ class BaseModel(object):
             if self._config.train.var_filter:
               var_list = [v for v in var_list if
                   re.match(self._config.train.var_filter, v.name)]
-            #l2_loss_list = []
-            #for i in var_list:
-            #  l2_loss_list.append(self.l2_weight * tf.nn.l2_loss(i))
-            #l2_loss = tf.reduce_sum(l2_loss_list)
-            #loss += l2_loss
             acc_list.append(acc)
             loss_list.append(loss)
 
@@ -185,7 +172,6 @@ class BaseModel(object):
       # Summaries
       tf.summary.scalar('acc', self.accuracy)
       tf.summary.scalar('loss', self.loss)
-      #tf.summary.scalar('l2_loss', l2_loss)
       tf.summary.scalar('learning_rate', self.learning_rate)
       tf.summary.scalar('grads_norm', self.grads_norm)
       tf.summary.scalar('avg_abs_grads', avg_abs_grads)
@@ -345,7 +331,6 @@ class BaseModel(object):
       t_atten_probs = t_atten_probs[:,:,-1,:]
       # [batch_size * beam_size, feat_len]
       t_atten_probs = tf.reduce_mean(t_atten_probs, axis=1)
-      #t_atten_probs = t_atten_probs[:,0,:]  # fist head.
       # Update scores.
       # [batch_size * beam_size, beam_size]
       scores = scores[:, None] + last_k_scores
