@@ -26,43 +26,6 @@ EOS = u'</S>'
 class BDDataLoader(DataLoader):
     def __init__(self,config):
         super(BDDataLoader, self).__init__(config=config)
-        # # Variable init.
-        # self._put_done = False
-        # self._batch_queue = queue.Queue(100)
-        # self.bucket_select_dict = {}
-        # self.batch_bucket_limit = []
-        # self.uttid_target_map = {}
-
-        # # Config init.
-        # self._config = config
-        # self.apply_sentence_cmvn = self._config.apply_sentence_cmvn
-        # self.global_cmvn_file = self._config.global_cmvn_file
-        # self.global_cmvn = self._maybe_load_mean_stddev(self.global_cmvn_file)
-
-        # self.feat_files = glob.glob(self._config.train.feat_file_pattern)
-        # self.scp_files = glob.glob(self._config.train.feat_file_pattern)
-        # self.label_file = self._config.train.label_file
-        # self.frame_bucket_limit = self._config.train.frame_bucket_limit
-        # self.frame_bucket_limit = self.frame_bucket_limit\
-        #     .replace('[','')\
-        #     .replace(']','')\
-        #     .replace(' ','')
-        # self.frame_bucket_limit = [int(i) for i in 
-        #     self.frame_bucket_limit.split(',')]
-        # self.batch_bucket_limit_per_gpu = \
-        #     self._config.train.batch_bucket_limit_per_gpu
-        # self.batch_bucket_limit_per_gpu = self.batch_bucket_limit_per_gpu\
-        #     .replace('[','')\
-        #     .replace(']','')\
-        #     .replace(' ','')
-        # self.batch_bucket_limit_per_gpu = [int(int(i)*self._config.train.batch_factor) for i in self.batch_bucket_limit_per_gpu.split(',')]
-        # logging.info('frame_bucket_limit: ' + str(self.frame_bucket_limit))
-        # logging.info('batch_bucket_limit_per_gpu: ' + str(self.batch_bucket_limit_per_gpu))
-
-        # # Function init.
-        # self.load_vocab_init()
-        # self.select_bucket_init()
-        # self.load_label_init()
 
 
     def get_training_batches_with_buckets_using_scp(self, shuffle=True):
@@ -123,7 +86,7 @@ class BDDataLoader(DataLoader):
                 if mean and stddev:
                     input = (input - mean) / stddev
 
-            if self._config.spec_aug is not None:
+            self._config.spec_aug:
                 if uttid.split('-')[0]=='0.9' or uttid.split('-')[0]=='1.1':
                     continue
                 input = data_augmentation.fre_mask(input, F=27, m_F=2)

@@ -15,7 +15,7 @@ ff_units: 4
 num_heads: 8
 ff_activation: 'glu'
 model_dir: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4gpus_512units_spec'
-spec_aug: True
+spec_aug: True # use spec aug
 train:
     num_gpus: 4
     feat_file_pattern: '/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank/raw_fbank_train.*.scp'

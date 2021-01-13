@@ -12,3 +12,8 @@ __pycache__/
 test.py
 data/*
 save/*
+configs/trans_8_4_512units_sp.yaml
+configs/trans_8_4_512units.yaml
+configs/bd_8_4_512units_sp.yaml
+configs/bd_8_4_512units.yaml
+
