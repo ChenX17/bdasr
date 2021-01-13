@@ -1,8 +1,3 @@
-'''
-Date: 2020-10-22 22:34:50
-LastEditors: Xi Chen(chenxi50@lenovo.com)
-LastEditTime: 2020-10-26 21:42:19
-'''
 import yaml
 import codecs
 import re
@@ -34,6 +29,11 @@ if __name__ == "__main__":
   
   print('step 1: load the label')
   ref_file = './data/dev_text'
+  '''
+  BAC009S0743W0495 河南商报记者张郁摄
+  BAC009S0744W0121 单套总价三千万元以上的项目成交量达到一百套
+  BAC009S0744W0122 亚豪机构市场部总监郭毅指出
+  '''
 
   ref_dict = {}
   for line in codecs.open(ref_file, 'r', 'utf-8').readlines():
@@ -46,7 +46,6 @@ if __name__ == "__main__":
   dev_result_dir = config.dev.output_file+'*'
   cer_dict = {}
   for f in glob(dev_result_dir):
-      # import pdb;pdb.set_trace()
       ids = f.split('_')[-1]
       to_process = []
       for line in codecs.open(f, 'r', 'utf-8').readlines():
@@ -65,8 +64,6 @@ if __name__ == "__main__":
   print('step 3: average five best epoch')     
   cer_dict_sorted = sorted(cer_dict.items(), key=lambda x: x[1])
   
-  # import pdb;pdb.set_trace()
-  # print(cer_dict_sorted)
   best_5_cer = cer_dict_sorted[:5]
   print(best_5_cer)
   pre_str = os.path.join(config.model_dir, 'model_epoch_')
@@ -77,13 +74,17 @@ if __name__ == "__main__":
   avg_model_path = avg_model(checkpoints_list)
   
   print('step 4: decode with the averaged model')
-  os.system('CUDA_VISIBLE_DEVICES=4,5,6,7 python evaluate.py -c %s -ch True'%(args.config_file))
-  # import pdb;pdb.set_trace()
+  os.system('CUDA_VISIBLE_DEVICES=0,1,2,3 python evaluate.py -c %s -ch True'%(args.config_file))
 
   avg_result = config.test.set1.output_path = '/'.join(config.test.set1.output_path.split('/')[:-1])+'/averaged_result.txt'
   
   print('compute cer')
   ref_file = './data/test_text'
+  '''
+  BAC009S0903W0475 关于中国嵩山少林寺方丈齐永信的举报风波尚未停歇
+  BAC009S0903W0476 因准儿媳的举报跌下神坛
+  BAC009S0903W0477 位于温州苍南龙港镇水门村的一个仓库发生火灾
+  '''
 
   ref_dict = {}
   for line in codecs.open(ref_file, 'r', 'utf-8').readlines():
@@ -95,7 +96,6 @@ if __name__ == "__main__":
   for line in codecs.open(avg_result, 'r', 'utf-8').readlines():
     line = line.strip()
     line = re_sig.sub('',line)
-    # import pdb;pdb.set_trace()
     if len(line.split('\t'))!=2:
         uttid = line.split('\t')[0]
         text = u''
