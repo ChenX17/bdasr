@@ -189,7 +189,6 @@ class DataLoader(object):
       if self._config.spec_aug is not None:
         if uttid.split('-')[0]=='0.9' or uttid.split('-')[0]=='1.1':
           continue
-        input = data_augmentation.time_warp(input, W=40)
         input = data_augmentation.fre_mask(input, F=27, m_F=2)
         input = data_augmentation.time_mask(input, T=100, p=0.2, m_T=2)
       

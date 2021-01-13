@@ -18,8 +18,6 @@ latent_k_dim: 50
 latent_v_dim: 50
 #### num_heads: 8
 num_heads: 8
-mask_prob: 0.0
-mask_rate: 0.0
 ff_activation: 'glu'
 #model_dir: '/data00/home/labspeech_intern/chenxi/project/rebuild_transformerasr/bd_transformer_aishell_model'
 model_dir: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4gpus_512units'

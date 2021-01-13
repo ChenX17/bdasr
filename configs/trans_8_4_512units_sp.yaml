@@ -4,33 +4,18 @@ dst_vocab: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/vocab'
 apply_sentence_cmvn: False # Use global cmvn
 global_cmvn_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/global_cmvn_sp.txt'
 dst_vocab_size: 4335
-vocab_size: 4335
-#### hidden_units: 512
 hidden_units: 512
 scale_embedding: True
 tie_embedding_and_softmax: True
 attention_dropout_rate: 0.0
-#### residual_dropout_rate: 0.1
 residual_dropout_rate: 0.2
 encoder_num_blocks: 8
 decoder_num_blocks: 4
-latent_k_dim: 50
-latent_v_dim: 50
-#### num_heads: 8
 num_heads: 8
 ff_activation: 'glu'
 model_dir: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/transformer_8_4_4gpus_512units_sp'
-# Discarded
-#bucket_min: 50
-# Discarded
-#bucket_max: 10000
-# Discarded
-#bucket_step: 10
-# Discarded
-#min_count_in_bucket: 100
 train:
     num_gpus: 4
-    #tokens_per_batch: 50000
     feat_file_pattern: '/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank_sp/raw_fbank_train_sp.*.scp'
     label_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/label_sp'
     frame_bucket_limit: '[200, 300, 500, 800, 1200, 1400, 1800, 3000]'
@@ -38,24 +23,16 @@ train:
     batch_factor: 0.3
     debug: False
     target_len_limit: 100
-    #max_length: 5000
     num_epochs: 70
-    # Discarded
-    #num_steps: 300000
     max_steps: 600000
-    # debug: 200, train: 500
     save_freq: -500
-    # show_freq: 10
     summary_freq: 100
     grads_clip: 5
     optimizer: 'adam_decay'
     learning_rate: 1
     warmup_steps: 16000
     label_smoothing: 0.1
-    #toleration: 10
     eval_on_dev: True
-#    input_dim: 129
-#    input_dim: 516
     input_dim: 240
     var_filter: ''
 dev:

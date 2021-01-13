@@ -4,8 +4,6 @@ dst_vocab: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/bd_vocab'
 apply_sentence_cmvn: False # Use global cmvn
 global_cmvn_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/global_cmvn.txt'
 dst_vocab_size: 4336
-vocab_size: 4335
-#### hidden_units: 512
 hidden_units: 512
 scale_embedding: True
 tie_embedding_and_softmax: True
@@ -14,26 +12,12 @@ residual_dropout_rate: 0.2
 encoder_num_blocks: 8
 decoder_num_blocks: 4
 ff_units: 4
-latent_k_dim: 50
-latent_v_dim: 50
-#### num_heads: 8
 num_heads: 8
-mask_prob: 0.0
-mask_rate: 0.0
 ff_activation: 'glu'
-#model_dir: '/data00/home/labspeech_intern/chenxi/project/rebuild_transformerasr/bd_transformer_aishell_model'
 model_dir: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/save/bd_8_4_4gpus_512units_spec'
 spec_aug: True
-# Discarded
-#bucket_min: 50
-# Discarded
-#bucket_max: 10000
-# Discarded
-#bucket_step: 10
-#min_count_in_bucket: 100
 train:
     num_gpus: 4
-    #tokens_per_batch: 50000
     feat_file_pattern: '/data/nfs_rt22/TTS/chenxi/projects/kaldi/egs/aishell/s5/fbank/raw_fbank_train.*.scp'
     label_file: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/text'
     sudo_l2r_target: '/data/nfs_rt22/TTS/chenxi/projects/bd-asr/data/text'
@@ -43,14 +27,9 @@ train:
     batch_factor: 0.3
     debug: False
     target_len_limit: 100
-    #max_length: 5000
     num_epochs: 70
-    # Discarded
-    #num_steps: 300000
     max_steps: 240000
-    # debug: 200, train: 500
     save_freq: -500
-    # show_freq: 10
     summary_freq: 100
     eval_on_dev: True
     grads_clip: 5
@@ -58,9 +37,6 @@ train:
     learning_rate: 1
     warmup_steps: 16000
     label_smoothing: 0.1
-    #toleration: 10
-#    input_dim: 129
-#    input_dim: 516
     input_dim: 240
     var_filter: ''
 dev:
