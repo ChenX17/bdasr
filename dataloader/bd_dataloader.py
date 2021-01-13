@@ -65,7 +65,7 @@ class BDDataLoader(DataLoader):
         # self.load_label_init()
 
 
-    def get_training_batches_with_buckets_using_scp(self, shuffle=False):
+    def get_training_batches_with_buckets_using_scp(self, shuffle=True):
         """Generate batches according to bucket setting."""
         # Shuffle the training files.
         total_scp = []
@@ -123,6 +123,12 @@ class BDDataLoader(DataLoader):
                 if mean and stddev:
                     input = (input - mean) / stddev
 
+            if self._config.spec_aug is not None:
+                if uttid.split('-')[0]=='0.9' or uttid.split('-')[0]=='1.1':
+                    continue
+                input = data_augmentation.fre_mask(input, F=27, m_F=2)
+                input = data_augmentation.time_mask(input, T=100, p=0.2, m_T=2)
+
             ori_input_len = len(input)
             if ori_input_len < 3:
                 continue
@@ -131,11 +137,6 @@ class BDDataLoader(DataLoader):
             input = input.reshape(stack_len,-1)
             target_len = len(target)
 
-            if self._config.spec_aug is not None:
-                if uttid.split('-')[0]=='0.9' or uttid.split('-')[0]=='1.1':
-                    continue
-                input = data_augmentation.apply_fre_mask(input, F=27, m_F=2)
-                input = data_augmentation.apply_time_mask(input, T=100, p=0.2, m_T=2)
 
             if target_len == 0:
                 continue

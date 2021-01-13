@@ -170,23 +170,13 @@ class DataLoader(object):
 
     ark_reader = kaldi_io.read_mat_scp(scp_shuf_path)
     while True:
-        #uttid, input, looped = scp_reader.read_next_utt()
-        #if looped:
-        #  break
       try:
         uttid, input = ark_reader.next()
-        #tf.logging.info("now uttid =" + uttid)
       except:
         tf.logging.warn("End of file: " + scp_shuf_path)
         break
 
-      if not uttid in self.uttid_target_map:
-        logging.warn('uttid=' + str(uttid) + ',target is None')
-        continue
-      target = self.uttid_target_map[uttid]
-      if target is None:
-        logging.warn('uttid=' + str(uttid) + ',target is None')
-        continue
+      
       if self.apply_sentence_cmvn:
         mean = np.mean(input, axis=0)
         stddev = np.std(input, axis=0)
@@ -196,6 +186,22 @@ class DataLoader(object):
         if mean and stddev:
           input = (input - mean) / stddev
 
+      if self._config.spec_aug is not None:
+        if uttid.split('-')[0]=='0.9' or uttid.split('-')[0]=='1.1':
+          continue
+        input = data_augmentation.time_warp(input, W=40)
+        input = data_augmentation.fre_mask(input, F=27, m_F=2)
+        input = data_augmentation.time_mask(input, T=100, p=0.2, m_T=2)
+      
+      # if not uttid in self.uttid_target_map:
+      #   logging.warn('uttid=' + str(uttid) + ',target is None')
+      #   continue
+      
+      target = self.uttid_target_map[uttid]
+      if target is None:
+        logging.warn('uttid=' + str(uttid) + ',target is None')
+        continue
+
       ori_input_len = len(input)
       if ori_input_len < 3:
         continue
@@ -204,11 +210,7 @@ class DataLoader(object):
       input = input.reshape(stack_len,-1)
       target_len = len(target)
 
-      if self._config.spec_aug is not None:
-        if uttid.split('-')[0]=='0.9' or uttid.split('-')[0]=='1.1':
-          continue
-        input = data_augmentation.apply_fre_mask(input, F=27, m_F=2)
-        input = data_augmentation.apply_time_mask(input, T=100, p=0.2, m_T=2)
+      
 
 
       if target_len == 0:

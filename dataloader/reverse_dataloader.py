@@ -39,7 +39,7 @@ class REDataLoader(DataLoader):
                 x_tmp = phone2idx.get(word, UNK_INDEX)
                 x.append(x_tmp)
                 if x_tmp == UNK_INDEX and word != UNK:
-                    logging.warn('=========[ZSY]x_tmp=UNK_INDEX, word=' + str(word.encode('UTF-8')))
+                    logging.warn('x_tmp=UNK_INDEX, word=' + str(word.encode('UTF-8')))
             indices.append(x)
 
         # Pad to the same length.

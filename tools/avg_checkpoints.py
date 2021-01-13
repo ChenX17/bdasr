@@ -1,11 +1,6 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-'''
-Date: 2020-10-23 00:02:20
-LastEditors: Xi Chen(chenxi50@lenovo.com)
-LastEditTime: 2020-10-24 23:32:28
-'''
 # Copyright 2017 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

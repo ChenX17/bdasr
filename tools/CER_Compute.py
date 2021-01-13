@@ -1,8 +1,3 @@
-'''
-Date: 2020-10-22 19:56:35
-LastEditors: Xi Chen(chenxi50@lenovo.com)
-LastEditTime: 2020-10-22 19:56:36
-'''
 # -*- coding: UTF-8 -*-
 import editdistance
 from argparse import ArgumentParser
